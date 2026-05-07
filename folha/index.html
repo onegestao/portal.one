@@ -72,10 +72,6 @@
                 <i class="fas fa-chart-pie w-5 text-center"></i>
                 Visão Geral
             </button>
-            <button onclick="switchView('costs')" id="nav-costs" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition active">
-                <i class="fas fa-table w-5 text-center"></i>
-                Custo Total
-            </button>
             <button onclick="switchView('files')" id="nav-files" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition">
                 <i class="fas fa-folder-open w-5 text-center"></i>
                 Arquivos da Folha
@@ -84,7 +80,7 @@
                 <i class="fas fa-university w-5 text-center"></i>
                 Dados Bancários
             </button>
-            <button onclick="switchView('cnab')" id="nav-cnab" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition">
+            <button onclick="switchView('cnab')" id="nav-cnab" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition active">
                 <i class="fas fa-file-invoice-dollar w-5 text-center"></i>
                 CNAB Inter
             </button>
@@ -115,8 +111,8 @@
         <!-- Topbar -->
         <header class="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-8 shadow-sm z-10">
             <div>
-                <h2 id="pageTitle" class="text-xl font-bold text-gray-800">Custo Total</h2>
-                <p id="pageSubtitle" class="text-xs text-gray-500">Detalhamento por rubrica/evento da folha</p>
+                <h2 id="pageTitle" class="text-xl font-bold text-gray-800">CNAB Inter</h2>
+                <p id="pageSubtitle" class="text-xs text-gray-500">Gerar arquivo de remessa</p>
             </div>
             <div class="flex items-center gap-4">
                 <div class="flex flex-col items-end">
@@ -539,136 +535,6 @@
                     <td class="p-4 text-right text-xs text-gray-500 bg-blue-50">R$&nbsp;27,03</td>
                     <td class="p-4 text-right font-bold text-gray-900">R$&nbsp;315,26</td>
                 </tr></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- VIEW 1B: CUSTO TOTAL (DETALHAMENTO POR EVENTO/RUBRICA) -->
-            <div id="view-costs" class="view-section space-y-6">
-                <div class="glass-panel rounded-xl overflow-hidden">
-                    <div class="p-5 border-b border-gray-100 flex justify-between items-center flex-wrap gap-3">
-                        <div>
-                            <h3 class="font-bold text-gray-800">Custo Total - Detalhamento por Rubrica</h3>
-                            <p class="text-xs text-gray-500 mt-1">Cada coluna representa uma rubrica/evento extraída do PDF (Provento ou Desconto).</p>
-                        </div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <select id="costsViewMode" onchange="renderCostsView()" class="text-xs border border-gray-300 rounded px-2 py-1.5 bg-white">
-                                <option value="all">Todas as rubricas</option>
-                                <option value="P">Apenas Proventos</option>
-                                <option value="D">Apenas Descontos</option>
-                            </select>
-                            <button onclick="exportCostsToCSV()" class="text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded hover:bg-green-100 transition">
-                                <i class="fas fa-file-csv mr-1"></i> Exportar CSV
-                            </button>
-                            <span id="costsMonthBadge" class="text-xs bg-orange-50 text-orange-700 px-2 py-1 rounded border border-orange-100">Mês 05 • 24 colaboradores</span>
-                        </div>
-                    </div>
-                    <div id="costsViewMessage" class="p-6 text-center text-sm text-gray-500 bg-yellow-50 border-y border-yellow-100">
-                        <i class="fas fa-info-circle text-yellow-600 mr-2"></i>
-                        Esta folha foi importada antes da extração de rubricas. <strong>Re-importe o PDF</strong> para visualizar os eventos individualmente.
-                    </div>
-                    <div class="overflow-auto" style="max-height: calc(100vh - 220px);">
-                        <table class="w-full text-left border-collapse text-sm" id="costsTable">
-                            <thead id="costsTableHead" class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold sticky top-0 z-10"><tr><th class="p-4">Colaborador</th><th class="p-4 text-right">Proventos</th><th class="p-4 text-right text-red-500">Descontos</th><th class="p-4 text-right text-green-700">Líquido</th></tr></thead>
-                            <tbody id="costsTableBody" class="text-gray-700 divide-y divide-gray-100"><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">ANANDA DIAS DOS SANTOS</td>
-                        <td class="p-4 text-right">R$&nbsp;2.707,89</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;916,33</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.791,56</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">BEATRIZ DOS SANTOS GAMA</td>
-                        <td class="p-4 text-right">R$&nbsp;1.893,82</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;843,06</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.050,76</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">CASSIUS CLEI NUNES</td>
-                        <td class="p-4 text-right">R$&nbsp;464,63</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;34,84</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;429,79</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">CAUA ESTEVO RODRIGUES</td>
-                        <td class="p-4 text-right">R$&nbsp;700,00</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;52,50</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;647,50</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">DANIELA PORFIRIO DA SILVA</td>
-                        <td class="p-4 text-right">R$&nbsp;1.200,00</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;90,00</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.110,00</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">DEBORA DE OLIVEIRA GARCEZ</td>
-                        <td class="p-4 text-right">R$&nbsp;2.005,44</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;853,10</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.152,34</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">DEBORA LEMOS RODRIGUES</td>
-                        <td class="p-4 text-right">R$&nbsp;2.196,00</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;974,80</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.221,20</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">DIEGO BEZERRA OLIVEIRA</td>
-                        <td class="p-4 text-right">R$&nbsp;406,55</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;30,49</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;376,06</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">FELIPE VINICIUS DE PAULA SANTOS</td>
-                        <td class="p-4 text-right">R$&nbsp;2.600,00</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;1.405,68</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.194,32</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">GISLAYNE SANTOS SILVA</td>
-                        <td class="p-4 text-right">R$&nbsp;406,55</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;30,49</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;376,06</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">JAQUELYNE JACINTHO NERI DOS REIS BARBOSA</td>
-                        <td class="p-4 text-right">R$&nbsp;2.336,61</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;882,91</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.453,70</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">JENIFER DE CARVALHO MARTINS</td>
-                        <td class="p-4 text-right">R$&nbsp;1.742,36</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;829,43</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;912,93</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">JOSE NETO FERNANDES DE SOUSA</td>
-                        <td class="p-4 text-right">R$&nbsp;406,55</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;30,49</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;376,06</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">JULYANNA JACINTHO NERI DOS REIS BARBOSA</td>
-                        <td class="p-4 text-right">R$&nbsp;406,55</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;30,49</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;376,06</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">KAWANE VALESCA DE SOUZA OLIVEIRA</td>
-                        <td class="p-4 text-right">R$&nbsp;1.809,90</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;829,43</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;980,47</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">LEANDRA PIRES ROMAO</td>
-                        <td class="p-4 text-right">R$&nbsp;1.742,36</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;933,97</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;808,39</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">LUIZ HENRIQUE BAHIA COSTA</td>
-                        <td class="p-4 text-right">R$&nbsp;3.500,00</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;1.708,58</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.791,42</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">MATEUS OLIVEIRA PEREIRA</td>
-                        <td class="p-4 text-right">R$&nbsp;1.884,28</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;842,20</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.042,08</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">MATHEUS BARBOSA DE SOUZA</td>
-                        <td class="p-4 text-right">R$&nbsp;3.000,00</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;1.628,58</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.371,42</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">PEDRO HENRIQUE RIBEIRO DE BARROS</td>
-                        <td class="p-4 text-right">R$&nbsp;1.800,00</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;965,68</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;834,32</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">TATIANE CRISTINA DE ALMEIDA</td>
-                        <td class="p-4 text-right">R$&nbsp;2.805,25</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;1.228,15</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;1.577,10</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">Funcionário 22</td>
-                        <td class="p-4 text-right">R$&nbsp;1.742,36</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;829,43</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;912,93</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">THAYSA FREIRE DE SOUZA</td>
-                        <td class="p-4 text-right">R$&nbsp;2.153,83</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;2.153,83</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;0,00</td></tr><tr class="hover:bg-gray-50">
-                        <td class="p-4 font-medium">YASMIM GABRIELLY SILVA DA CRUZ</td>
-                        <td class="p-4 text-right">R$&nbsp;241,31</td>
-                        <td class="p-4 text-right text-red-500">R$&nbsp;17,42</td>
-                        <td class="p-4 text-right text-green-700 font-bold">R$&nbsp;223,89</td></tr></tbody>
-                            <tfoot id="costsTableFoot" class="bg-gray-50 font-bold text-gray-800 text-xs sticky bottom-0"><tr><td class="p-3">TOTAL</td><td class="p-3 text-right">R$&nbsp;40.152,24</td><td class="p-3 text-right text-red-500">R$&nbsp;18.141,88</td><td class="p-3 text-right text-green-700">R$&nbsp;22.010,36</td></tr></tfoot>
                         </table>
                     </div>
                 </div>
@@ -1312,7 +1178,7 @@
             </div>
 
             <!-- VIEW 4: CNAB INTER -->
-            <div id="view-cnab" class="view-section space-y-6 hidden">
+            <div id="view-cnab" class="view-section space-y-6">
                 <div class="flex flex-col lg:flex-row gap-6">
                     <!-- Painel Config -->
                     <div class="w-full lg:w-1/3 space-y-6">
@@ -1766,7 +1632,6 @@
 
             const titles = {
                 'overview': ['Visão Geral', 'Resumo financeiro da folha selecionada'],
-                'costs': ['Custo Total', 'Detalhamento por rubrica/evento da folha'],
                 'files': ['Arquivos da Folha', 'Selecione o mês para importar (inclui 13º)'],
                 'bank': ['Dados Bancários', 'Cadastro de contas para CNAB'],
                 'cnab': ['CNAB Inter', 'Gerar arquivo de remessa']
@@ -1777,9 +1642,6 @@
             if(viewId === 'bank') {
                 syncBankDataWithFiles(); 
                 renderBankTable();
-            }
-            if(viewId === 'costs') {
-                renderCostsView();
             }
             if(viewId === 'cnab') {
                 // Atualiza a lista de meses disponíveis na seleção do CNAB
@@ -1957,11 +1819,6 @@
             document.getElementById('statNetPay').innerText = formatMoney(totals.net);
             document.getElementById('statProvisions').innerText = formatMoney(totals.provisions);
             document.getElementById('statTotalCost').innerText = formatMoney(totals.cost);
-            // Se a aba Custo Total estiver aberta, re-renderiza para refletir a folha selecionada
-            const costsView = document.getElementById('view-costs');
-            if (costsView && !costsView.classList.contains('hidden')) {
-                renderCostsView();
-            }
         }
 
         // --- PARSING LOGIC (RESTORED & ADAPTED) ---
