@@ -459,15 +459,15 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
     </div>
   </div>
   <div class="hdr-ct">
-    <a href="../" class="hdr-back"><i class="ph-bold ph-arrow-left"></i> HUB</a>
-    <div class="hdr-div"></div>
+    <a href="../" class="hdr-back" id="btnHubBack" style="display:none"><i class="ph-bold ph-arrow-left"></i> HUB</a>
+    <div class="hdr-div" id="hdrDivHub" style="display:none"></div>
     <span class="hdr-title" id="hTitle">Selecione uma Competência</span>
     <span class="view-badge horas" id="viewBadge" style="display:none"><i class="ph-fill ph-clock"></i> Controle de H.E.</span>
     <div class="hdr-right">
-      <button class="btn-lock" id="btnLock" onclick="lockView()" style="display:none"><i class="ph-fill ph-lock-open"></i> Bloquear</button>
       <button class="btn-sm" id="btnExport" onclick="exportCSV()" style="display:none"><i class="ph-bold ph-file-csv"></i> Exportar</button>
-      <button class="btn-sm" onclick="openRegistry()"><i class="ph-bold ph-address-book"></i> Colaboradores</button>
+      <button class="btn-sm" id="btnColabHeader" onclick="openRegistry()" style="display:none"><i class="ph-bold ph-address-book"></i> Colaboradores</button>
       <button class="btn-up" onclick="openModal()"><i class="ph-bold ph-upload-simple"></i> Processar Planilha</button>
+      <button class="btn-fin-lock" id="btnFinLock" onclick="toggleFinLock()" title="Acesso Financeiro"><i class="ph-fill ph-lock" id="finLockIco"></i></button>
     </div>
   </div>
 </header>
@@ -485,13 +485,12 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
           <div class="ci-sub">Horas por colaborador</div>
         </div>
       </div>
-      <div class="ci v-fin" id="nav-fin" onclick="clickFinanceiro()">
+      <div class="ci v-fin" id="nav-fin" onclick="clickFinanceiro()" style="display:none">
         <i class="ph-fill ph-currency-dollar ci-ic"></i>
         <div class="ci-body">
           <div class="ci-ttl">Financeiro</div>
-          <div class="ci-sub" id="finNavSub">Acesso restrito</div>
+          <div class="ci-sub" id="finNavSub">Custos e salários</div>
         </div>
-        <i class="ph-fill ph-lock ci-badge" id="finLockIcon" style="color:#555;font-size:13px"></i>
       </div>
 
       <div class="sb-div"></div>
@@ -509,8 +508,8 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
       <div class="sb-div"></div>
 
       <!-- REGISTRY ENTRY -->
-      <div class="sb-lbl">Banco de Dados</div>
-      <div class="ci" onclick="openRegistry()">
+      <div class="sb-lbl" id="lblBancoDados" style="display:none">Banco de Dados</div>
+      <div class="ci" id="navColab" onclick="openRegistry()" style="display:none">
         <i class="ph-fill ph-address-book ci-ic"></i>
         <div class="ci-body">
           <div class="ci-ttl">Colaboradores</div>
@@ -646,7 +645,7 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
     </div>
     <div class="reg-toolbar">
       <div class="srch" style="flex:1"><i class="ph-bold ph-magnifying-glass"></i><input type="text" id="regSearch" placeholder="Buscar por nome, CPF ou cargo..." oninput="renderRegistry()" style="width:100%"></div>
-      <button class="btn-up" onclick="addNewRow()"><i class="ph-bold ph-plus"></i> Adicionar</button>
+      <button class="btn-up" id="btnAddColab" onclick="addNewRow()" style="display:none"><i class="ph-bold ph-plus"></i> Adicionar</button>
     </div>
     <div class="reg-body">
       <div class="reg-th">
@@ -708,7 +707,7 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
     </div>
     <div class="reg-toolbar">
       <div class="srch" style="flex:1"><i class="ph-bold ph-magnifying-glass"></i><input type="text" id="mgrSearch" placeholder="Buscar gestor..." oninput="renderMgr()" style="width:100%"></div>
-      <button class="btn-up" onclick="addMgrRow()"><i class="ph-bold ph-plus"></i> Adicionar</button>
+      <button class="btn-up" id="btnAddMgr" onclick="addMgrRow()"><i class="ph-bold ph-plus"></i> Adicionar</button>
     </div>
     <div class="mgr-th">
       <span></span><span>Nome</span><span>Cargo</span><span>Senha</span><span></span>
@@ -735,6 +734,13 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
     <div class="pass-btns">
       <button class="btn-cancel" onclick="closeApprModal()">Cancelar</button>
       <button class="btn-enter" id="apprBtn" onclick="doApprove()" style="background:var(--gn)"><i class="ph-bold ph-seal-check"></i> Aprovar</button>
+    </div>
+    <div class="mgr-chg-link" onclick="toggleMgrPassChg()">Alterar minha senha</div>
+    <div class="mgr-pass-chg" id="mgrPassChg">
+      <input type="password" id="mgrOldPass" placeholder="Senha atual">
+      <input type="password" id="mgrNewPass" placeholder="Nova senha (mín. 3 caracteres)">
+      <input type="password" id="mgrNewPass2" placeholder="Confirmar nova senha">
+      <button class="btn-save-mgr-pass" onclick="saveMgrNewPass()">Salvar nova senha</button>
     </div>
   </div>
 </div>
@@ -818,6 +824,8 @@ function fmtCPF(v){const d=v.replace(/\D/g,'');if(d.length!==11)return v;return 
    VIEW SWITCHING
 ══════════════════════════════════════════ */
 function switchView(view){
+  // Guard: if not unlocked, can't switch to financeiro
+  if(view==='financeiro'&&!finUnlocked){ view='horas'; }
   currentView=view;
   // Sidebar active states
   document.getElementById('nav-horas').classList.toggle('active',view==='horas');
@@ -832,12 +840,8 @@ function switchView(view){
       ?'<i class="ph-fill ph-clock"></i> Controle de H.E.'
       :'<i class="ph-fill ph-currency-dollar"></i> Financeiro';
   }
-  // Lock button
-  document.getElementById('btnLock').style.display=(view==='financeiro'&&finUnlocked)?'flex':'none';
-  // Financeiro sidebar sub-text + icon
-  document.getElementById('finNavSub').textContent=finUnlocked?'Custos e salários':'Acesso restrito';
-  document.getElementById('finLockIcon').className='ph-fill '+(finUnlocked?'ph-lock-open':'ph-lock')+' ci-badge';
-  document.getElementById('finLockIcon').style.color=finUnlocked?'var(--gn)':'#555';
+  // Financeiro nav sub-text
+  const finSub=document.getElementById('finNavSub');if(finSub)finSub.textContent='Custos e salários';
   if(c) showContent(c);
 }
 
@@ -850,6 +854,51 @@ function lockView(){
   finUnlocked=false;
   switchView('horas');
   showToast('Módulo financeiro bloqueado.');
+}
+
+function toggleFinLock(){
+  if(finUnlocked){
+    finUnlocked=false;
+    switchView('horas');
+    updateLockUI();
+    showToast('Acesso financeiro bloqueado.');
+  } else {
+    openPassModal();
+  }
+}
+
+function updateLockUI(){
+  const btn=document.getElementById('btnFinLock');
+  const ico=document.getElementById('finLockIco');
+  const navFin=document.getElementById('nav-fin');
+  const navColab=document.getElementById('navColab');
+  const lblBanco=document.getElementById('lblBancoDados');
+  const btnColabH=document.getElementById('btnColabHeader');
+  const btnHub=document.getElementById('btnHubBack');
+  const hdrDiv=document.getElementById('hdrDivHub');
+  if(finUnlocked){
+    btn.classList.add('unlocked');
+    ico.className='ph-fill ph-lock-open';
+    btn.title='Bloquear acesso financeiro';
+    if(navFin) navFin.style.display='';
+    if(navColab) navColab.style.display='';
+    if(lblBanco) lblBanco.style.display='';
+    if(btnColabH) btnColabH.style.display='flex';
+    if(btnHub) btnHub.style.display='flex';
+    if(hdrDiv) hdrDiv.style.display='';
+  } else {
+    btn.classList.remove('unlocked');
+    ico.className='ph-fill ph-lock';
+    btn.title='Acesso Financeiro';
+    if(navFin) navFin.style.display='none';
+    if(navColab) navColab.style.display='none';
+    if(lblBanco) lblBanco.style.display='none';
+    if(btnColabH) btnColabH.style.display='none';
+    if(btnHub) btnHub.style.display='none';
+    if(hdrDiv) hdrDiv.style.display='none';
+    // Force back to horas view
+    if(currentView==='financeiro') switchView('horas');
+  }
 }
 
 function competencia(){ return comps.find(x=>x.id===activeId); }
@@ -879,6 +928,7 @@ function doUnlock(){
   if(v===finPass){
     finUnlocked=true;
     closePassModal();
+    updateLockUI();
     switchView('financeiro');
     showToast('Módulo financeiro desbloqueado.');
   } else {
@@ -919,6 +969,9 @@ function renderRegistry(){
   document.querySelectorAll('.reg-th,.reg-row').forEach(el=>{
     el.style.gridTemplateColumns=salColVisible?'36px 1fr 120px 130px 110px 75px 72px':'36px 1fr 120px 130px 0px 75px 72px';
   });
+  // Show/hide add button
+  const addBtn=document.getElementById('btnAddColab');
+  if(addBtn)addBtn.style.display=finUnlocked?'flex':'none';
   const list=registry.filter(r=>!q||r.name.toLowerCase().includes(q)||r.cpf.includes(q)||r.cargo.toLowerCase().includes(q));
   document.getElementById('regCount2').textContent=`${list.length} de ${registry.length} colaborador${registry.length!==1?'es':''}`;
   if(!list.length){rows.innerHTML=`<div style="padding:40px;text-align:center;color:var(--t3)"><i class="ph-fill ph-user-list" style="font-size:32px;display:block;margin-bottom:10px"></i>${registry.length?'Nenhum resultado.':'Nenhum colaborador cadastrado.'}</div>`;return;}
@@ -929,8 +982,8 @@ function buildRegRow(r,editing){
     return`<div class="reg-row editing" id="rrow_${r.id}">
       <div class="reg-av">${inits(r.name||'?')}</div>
       <input class="reg-inp" id="re_name_${r.id}" value="${r.name||''}" placeholder="Nome completo">
-      <input class="reg-inp mono" id="re_cpf_${r.id}" value="${r.cpf?fmtCPF(r.cpf):''}" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">
-      <input class="reg-inp" id="re_cargo_${r.id}" value="${r.cargo||''}" placeholder="Cargo">
+      ${finUnlocked?`<input class="reg-inp mono" id="re_cpf_\${r.id}" value="\${r.cpf?fmtCPF(r.cpf):''}" placeholder="000.000.000-00" maxlength="14" oninput="maskCPF(this)">`:`<div class="reg-cell mono" style="padding:6px 8px;background:#f5f5f5;border-radius:6px;border:1.5px solid var(--bd)">\${r.cpf?fmtCPF(r.cpf):'Sem CPF'}</div>`}
+      ${finUnlocked?`<input class="reg-inp" id="re_cargo_\${r.id}" value="\${r.cargo||''}" placeholder="Cargo">`:`<div class="reg-cell" style="padding:6px 8px;background:#f5f5f5;border-radius:6px;border:1.5px solid var(--bd)">\${r.cargo||'Sem cargo'}</div>`}
       ${finUnlocked?`<input class="reg-inp mono" id="re_sal_\${r.id}" type="number" value="\${r.salary||''}" placeholder="0,00" min="0" step="0.01">`:`<div style="font-size:10px;color:var(--yw);display:flex;align-items:center;gap:3px"><i class="ph-fill ph-lock"></i></div>`}
       <input class="reg-inp mono" id="re_hm_${r.id}" type="number" value="${r.hoursMonth||220}" min="1">
       <div class="reg-acts">
@@ -956,8 +1009,8 @@ function editRow(id){ const r=registry.find(x=>x.id===id); if(!r)return; const e
 function saveRow(id){
   const r=registry.find(x=>x.id===id);if(!r)return;
   const name=document.getElementById('re_name_'+id).value.trim();if(!name){showToast('Informe o nome.','warn');return;}
-  r.name=name; r.cpf=document.getElementById('re_cpf_'+id).value.replace(/\D/g,'');
-  r.cargo=document.getElementById('re_cargo_'+id).value.trim();
+  r.name=name;
+  if(finUnlocked){const ci=document.getElementById('re_cpf_'+id);if(ci)r.cpf=ci.value.replace(/\D/g,'');const cg=document.getElementById('re_cargo_'+id);if(cg)r.cargo=cg.value.trim();}
   if(finUnlocked){const si=document.getElementById('re_sal_'+id);r.salary=si?parseFloat(si.value)||0:r.salary;}
   r.hoursMonth=parseFloat(document.getElementById('re_hm_'+id).value)||220;
   r.updatedAt=new Date().toISOString();
@@ -965,6 +1018,7 @@ function saveRow(id){
 }
 function delRow(id){ if(!confirm('Excluir este colaborador?'))return; registry=registry.filter(r=>r.id!==id); persistReg();updateRegCount();renderRegistry();showToast('Colaborador removido.'); }
 function addNewRow(){
+  if(!finUnlocked){showToast('Acesso financeiro necessário.','warn');return;}
   const rows=document.getElementById('regRows');
   const ex=document.getElementById('rrow___new__'); if(ex)ex.remove();
   rows.insertAdjacentHTML('afterbegin',`<div class="reg-row new-row" id="rrow___new__">
@@ -1124,7 +1178,7 @@ function renderSidebar(){
         <div class="ci-ttl">${MONTHS[parseInt(c.month)-1]} / ${c.year}</div>
         <div class="ci-sub">${c.employees.length} colab. · ${fmtH(c.totalHours)}</div>
       </div>
-      <button class="ci-del" onclick="event.stopPropagation();delComp('${c.id}')"><i class="ph-bold ph-trash"></i></button>
+      ${finUnlocked?`<button class="ci-del" onclick="event.stopPropagation();delComp('\${c.id}')"><i class="ph-bold ph-trash"></i></button>`:''}
     </div>`;
   }).join('');
   document.getElementById('sm-p').textContent=comps.length;
@@ -1356,6 +1410,8 @@ function closeMgr(){ document.getElementById('mgrOv').classList.remove('open'); 
 function renderMgr(){
   const q=document.getElementById('mgrSearch').value.toLowerCase();
   const rows=document.getElementById('mgrRows');
+  const addMgrBtn=document.getElementById('btnAddMgr');
+  if(addMgrBtn)addMgrBtn.style.display=finUnlocked?'flex':'none';
   const list=managers.filter(m=>!q||m.name.toLowerCase().includes(q)||m.cargo.toLowerCase().includes(q));
   document.getElementById('mgrCount2').textContent=`${list.length} de ${managers.length} gestor${managers.length!==1?'es':''}`;
   if(!list.length){rows.innerHTML=`<div style="padding:40px;text-align:center;color:var(--t3)"><i class="ph-fill ph-user-list" style="font-size:32px;display:block;margin-bottom:10px"></i>${managers.length?'Nenhum resultado.':'Nenhum gestor cadastrado.'}</div>`;return;}
@@ -1393,6 +1449,7 @@ function saveMgrRow(id){
 }
 function delMgrRow(id){ if(!confirm('Excluir este gestor?'))return;managers=managers.filter(m=>m.id!==id);persistMgr();updateMgrCount();renderMgr();showToast('Gestor removido.'); }
 function addMgrRow(){
+  if(!finUnlocked){showToast('Acesso financeiro necessário.','warn');return;}
   const rows=document.getElementById('mgrRows');
   const ex=document.getElementById('mrow___new__');if(ex)ex.remove();
   rows.insertAdjacentHTML('afterbegin',`<div class="mgr-row new-row" id="mrow___new__">
@@ -1468,7 +1525,33 @@ function promptApproval(managerId, compId){
   document.getElementById('apprOv').classList.add('open');
   setTimeout(()=>document.getElementById('apprPassInput').focus(),200);
 }
-function closeApprModal(){ document.getElementById('apprOv').classList.remove('open'); apprTarget=null; }
+function closeApprModal(){
+  document.getElementById('apprOv').classList.remove('open');
+  apprTarget=null;
+  const chg=document.getElementById('mgrPassChg');if(chg)chg.classList.remove('open');
+}
+function toggleMgrPassChg(){
+  const f=document.getElementById('mgrPassChg');
+  f.classList.toggle('open');
+  if(f.classList.contains('open'))document.getElementById('mgrOldPass').focus();
+}
+function saveMgrNewPass(){
+  if(!apprTarget)return;
+  const m=managers.find(x=>x.id===apprTarget.managerId);if(!m)return;
+  const old=document.getElementById('mgrOldPass').value;
+  const n1=document.getElementById('mgrNewPass').value;
+  const n2=document.getElementById('mgrNewPass2').value;
+  if(old!==m.password){showToast('Senha atual incorreta.','err');return;}
+  if(!n1||n1.length<3){showToast('Nova senha mínima 3 caracteres.','warn');return;}
+  if(n1!==n2){showToast('As senhas não conferem.','warn');return;}
+  m.password=n1;m.updatedAt=new Date().toISOString();
+  persistMgr();
+  document.getElementById('mgrOldPass').value='';
+  document.getElementById('mgrNewPass').value='';
+  document.getElementById('mgrNewPass2').value='';
+  document.getElementById('mgrPassChg').classList.remove('open');
+  showToast('Senha alterada com sucesso!');
+}
 function toggleApprVis(){
   const inp=document.getElementById('apprPassInput'),ico=document.getElementById('apprEyeIco');
   inp.type=inp.type==='text'?'password':'text';
