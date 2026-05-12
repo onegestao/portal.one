@@ -543,7 +543,7 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
 
     <div class="mi" id="contentState" style="display:none">
       <div class="stats" id="statsStrip"></div>
-      <div class="appr-bar" id="appBar" style="display:none"><span class="appr-label">Aprovações</span><div class="appr-chips" id="apprChips"></div><button class="appr-btn-add" onclick="openMgr()"><i class="ph-bold ph-plus"></i> Gestores</button></div>
+      <div class="appr-bar" id="appBar" style="display:none"><span class="appr-label">Aprovações</span><div class="appr-chips" id="apprChips"></div><button class="appr-btn-add" id="btnGestoresBar" onclick="openMgr()" style="display:none"><i class="ph-bold ph-plus"></i> Gestores</button></div>
       <div class="tb">
         <div class="srch"><i class="ph-bold ph-magnifying-glass"></i><input type="text" id="srchIn" placeholder="Buscar colaborador..." oninput="renderEmployees()"></div>
         <select class="fslt" id="rateFilter" onchange="renderEmployees()">
@@ -735,12 +735,13 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
       <button class="btn-cancel" onclick="closeApprModal()">Cancelar</button>
       <button class="btn-enter" id="apprBtn" onclick="doApprove()" style="background:var(--gn)"><i class="ph-bold ph-seal-check"></i> Aprovar</button>
     </div>
-    <div class="mgr-chg-link" onclick="toggleMgrPassChg()">Alterar minha senha</div>
-    <div class="mgr-pass-chg" id="mgrPassChg">
+    <div class="mgr-chg-link" id="mgrChgLink" onclick="toggleMgrPassChg()"><i class="ph-bold ph-key"></i> Alterar minha senha</div>
+    <div class="mgr-pass-chg" id="mgrPassChg" style="display:none">
+      <p style="font-size:10px;color:var(--t3);margin-bottom:10px;text-align:left">Digite a senha atual e defina uma nova:</p>
       <input type="password" id="mgrOldPass" placeholder="Senha atual">
       <input type="password" id="mgrNewPass" placeholder="Nova senha (mín. 3 caracteres)">
       <input type="password" id="mgrNewPass2" placeholder="Confirmar nova senha">
-      <button class="btn-save-mgr-pass" onclick="saveMgrNewPass()">Salvar nova senha</button>
+      <button class="btn-save-mgr-pass" onclick="saveMgrNewPass()"><i class="ph-bold ph-check"></i> Salvar nova senha</button>
     </div>
   </div>
 </div>
@@ -886,6 +887,7 @@ function updateLockUI(){
     if(btnColabH) btnColabH.style.display='flex';
     if(btnHub) btnHub.style.display='flex';
     if(hdrDiv) hdrDiv.style.display='';
+    const bg=document.getElementById('btnGestoresBar');if(bg)bg.style.display='flex';
   } else {
     btn.classList.remove('unlocked');
     ico.className='ph-fill ph-lock';
@@ -896,6 +898,7 @@ function updateLockUI(){
     if(btnColabH) btnColabH.style.display='none';
     if(btnHub) btnHub.style.display='none';
     if(hdrDiv) hdrDiv.style.display='none';
+    const bg=document.getElementById('btnGestoresBar');if(bg)bg.style.display='none';
     // Force back to horas view
     if(currentView==='financeiro') switchView('horas');
   }
@@ -1528,12 +1531,18 @@ function promptApproval(managerId, compId){
 function closeApprModal(){
   document.getElementById('apprOv').classList.remove('open');
   apprTarget=null;
-  const chg=document.getElementById('mgrPassChg');if(chg)chg.classList.remove('open');
+  const chg=document.getElementById('mgrPassChg');if(chg){chg.classList.remove('open');chg.style.display='none';}
+  const lnk=document.getElementById('mgrChgLink');if(lnk)lnk.classList.remove('open');
+  ['mgrOldPass','mgrNewPass','mgrNewPass2'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
 }
 function toggleMgrPassChg(){
   const f=document.getElementById('mgrPassChg');
+  const lnk=document.getElementById('mgrChgLink');
+  const isOpen=f.classList.contains('open');
   f.classList.toggle('open');
-  if(f.classList.contains('open'))document.getElementById('mgrOldPass').focus();
+  f.style.display=isOpen?'none':'block';
+  if(lnk) lnk.classList.toggle('open',!isOpen);
+  if(!isOpen) setTimeout(()=>document.getElementById('mgrOldPass').focus(),100);
 }
 function saveMgrNewPass(){
   if(!apprTarget)return;
