@@ -383,6 +383,9 @@ main{flex:1;overflow-y:auto;background:var(--ct-bg);display:flex;flex-direction:
         </select>
       </div>
     </div>
+    <div class="fr"><label class="fl">📝 Nota Explicativa</label>
+      <textarea class="fi-in" id="mNota" rows="3" placeholder="Ex: NF aguardando aprovação dos gestores X, Y e Z..." style="resize:vertical;min-height:72px;line-height:1.5"></textarea>
+    </div>
     <button class="bsv" onclick="saveUpload()"><i class="ph-bold ph-upload-simple"></i> &nbsp;Salvar no Sistema</button>
   </div>
 </div>
@@ -510,6 +513,7 @@ function renderDocs(){
             <span class="dmi" style="${isOverdue?'color:var(--s-vencido)':''}"><i class="ph-bold ph-alarm"></i>Venc: ${due}</span>
             ${hc?'<span class="dmi" style="color:var(--s-pago)"><i class="ph-fill ph-seal-check"></i>Comprovante</span>':''}
           </div>
+          ${d.nota?`<div style="margin-top:7px;padding:6px 9px;background:var(--ct-bg);border-left:3px solid var(--ow-orange);border-radius:4px;font-size:11px;color:var(--ct-text-2);line-height:1.4;font-style:italic;">${d.nota}</div>`:''}
         </div>
       </div>
       <div class="dc-bot">
@@ -570,6 +574,7 @@ function openUpModal(){
   document.getElementById('fpArea').innerHTML='';
   document.getElementById('fileIn').value='';
   document.getElementById('mDue').value='';
+  document.getElementById('mNota').value='';
   document.getElementById('upOv').classList.add('open');
 }
 function closeUpModal(){document.getElementById('upOv').classList.remove('open');}
@@ -587,13 +592,14 @@ function saveUpload(){
   const mon=document.getElementById('mMon').value;
   const due=document.getElementById('mDue').value;
   const st=document.getElementById('mSt').value;
+  const nota=document.getElementById('mNota').value.trim();
   let saved=0;
   const next=idx=>{
     if(idx>=pendFiles.length){saveDocs();closeUpModal();renderDocs();showToast(`${saved} arquivo(s) salvo(s)!`);return;}
     const f=pendFiles[idx];
     const r=new FileReader();
     r.onload=ev=>{
-      docs.push({id:genId(),name:f.name,category:cat,month:mon,due,status:st,
+      docs.push({id:genId(),name:f.name,category:cat,month:mon,due,status:st,nota,
                  size:fmtSz(f.size),fileData:ev.target.result,compData:null,compName:null,
                  uploadedAt:new Date().toISOString()});
       saved++;next(idx+1);
@@ -617,7 +623,11 @@ function openPanel(id){
     <div class="pmi"><div class="pml">Competência</div><div class="pmv">${ML[doc.month]||doc.month} / 2025</div></div>
     <div class="pmi"><div class="pml">Vencimento</div><div class="pmv" style="${isOv?'color:var(--s-vencido)':''}">${doc.due?fmtBR(doc.due):'Não definido'}</div></div>
     <div class="pmi"><div class="pml">Tamanho</div><div class="pmv">${doc.size||'—'}</div></div>
-    <div class="pmi"><div class="pml">Status</div><div class="pmv"><span class="stb ${stCls(doc.status)}">${stLbl(doc.status)}</span></div></div>`;
+    <div class="pmi"><div class="pml">Status</div><div class="pmv"><span class="stb ${stCls(doc.status)}">${stLbl(doc.status)}</span></div></div>
+    <div class="pmi" style="grid-column:1/-1">
+      <div class="pml">📝 Nota Explicativa</div>
+      <textarea id="pNota" rows="3" placeholder="Ex: NF aguardando aprovação dos gestores X, Y e Z..." style="width:100%;margin-top:5px;background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:7px;color:var(--ct-text-1);font-family:var(--font-b);font-size:12px;padding:9px 11px;outline:none;resize:vertical;min-height:68px;line-height:1.5;transition:border-color .2s" onfocus="this.style.borderColor='var(--ow-orange)'" onblur="this.style.borderColor='var(--ct-border)'">${doc.nota||''}</textarea>
+    </div>`;
   document.querySelectorAll('.sab').forEach(b=>b.classList.remove('act-pa','act-pr','act-pd','act-ve'));
   const mp={programar:'act-pr',programado:'act-pd',pago:'act-pa',vencido:'act-ve'};
   const ab=document.querySelector(`.sab.s-${doc.status==='programar'?'pr':doc.status==='programado'?'pd':doc.status==='pago'?'pa':'ve'}`);
@@ -675,6 +685,8 @@ function setSt(s){
 function savePanel(){
   const doc=docs.find(d=>d.id===activeId);if(!doc)return;
   doc.status=panelSt;
+  const notaEl=document.getElementById('pNota');
+  if(notaEl)doc.nota=notaEl.value.trim();
   saveDocs();renderDocs();openPanel(activeId);
   showToast('Alterações salvas!');
 }
