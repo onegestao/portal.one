@@ -496,8 +496,8 @@ main{flex:1;overflow-y:auto;background:var(--bg);display:flex;flex-direction:col
       <div class="sb-div"></div>
 
       <!-- APROVADORES -->
-      <div class="sb-lbl">Aprovadores</div>
-      <div class="ci" onclick="openMgr()">
+      <div class="sb-lbl" id="lblAprovadores" style="display:none">Aprovadores</div>
+      <div class="ci" id="navGestores" onclick="openMgr()" style="display:none">
         <i class="ph-fill ph-seal-check ci-ic"></i>
         <div class="ci-body">
           <div class="ci-ttl">Gestores</div>
@@ -888,6 +888,8 @@ function updateLockUI(){
     if(btnHub) btnHub.style.display='flex';
     if(hdrDiv) hdrDiv.style.display='';
     const bg=document.getElementById('btnGestoresBar');if(bg)bg.style.display='flex';
+    const lblA=document.getElementById('lblAprovadores');if(lblA)lblA.style.display='';
+    const navG=document.getElementById('navGestores');if(navG)navG.style.display='';
   } else {
     btn.classList.remove('unlocked');
     ico.className='ph-fill ph-lock';
@@ -899,6 +901,8 @@ function updateLockUI(){
     if(btnHub) btnHub.style.display='none';
     if(hdrDiv) hdrDiv.style.display='none';
     const bg=document.getElementById('btnGestoresBar');if(bg)bg.style.display='none';
+    const lblA=document.getElementById('lblAprovadores');if(lblA)lblA.style.display='none';
+    const navG=document.getElementById('navGestores');if(navG)navG.style.display='none';
     // Force back to horas view
     if(currentView==='financeiro') switchView('horas');
   }
