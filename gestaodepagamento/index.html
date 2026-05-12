@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Central de Guias & Pagamentos | ONE WAY</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><text y='203' font-size='224'>📂</text></svg>">
+<script src="https://unpkg.com/@phosphor-icons/web"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ow-orange:#C85A00; --ow-orange-mid:#E06B10;
+  --ow-orange-light:#FFF0E5; --ow-orange-glow:rgba(200,90,0,.10);
+  --sb-bg:#333333; --sb-bg-soft:#3a3a3a; --sb-line:#444444; --sb-text:#aaaaaa;
+  --ct-bg:#F2F2F2; --ct-surface:#FFFFFF; --ct-border:#DDDDDD;
+  --ct-text-1:#111; --ct-text-2:#555; --ct-text-3:#999;
+  --s-pago:#16A34A;     --s-pago-bg:#DCFCE7;
+  --s-programar:#C85A00; --s-programar-bg:#FFF0E5;
+  --s-programado:#1D4ED8; --s-programado-bg:#DBEAFE;
+  --s-vencido:#DC2626;  --s-vencido-bg:#FEE2E2;
+  --font-d:'Syne',sans-serif; --font-b:'DM Sans',sans-serif; --font-m:'IBM Plex Mono',monospace;
+  --sw:272px; --hh:60px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+body{background:var(--sb-bg);color:var(--ct-text-1);font-family:var(--font-b);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+.sb-scroll::-webkit-scrollbar{width:3px}.sb-scroll::-webkit-scrollbar-track{background:transparent}.sb-scroll::-webkit-scrollbar-thumb{background:#555;border-radius:2px}
+main::-webkit-scrollbar{width:6px}main::-webkit-scrollbar-track{background:var(--ct-bg)}main::-webkit-scrollbar-thumb{background:#ddd;border-radius:3px}
+
+/* HEADER */
+header{height:var(--hh);background:#0d0d0d;border-bottom:1px solid var(--sb-line);display:flex;align-items:center;flex-shrink:0;z-index:200}
+.hdr-sb{width:var(--sw);flex-shrink:0;display:flex;align-items:center;padding:0 18px;gap:12px;border-right:1px solid var(--sb-line);height:100%}
+.brand-logo{width:32px;height:32px;background:var(--ow-orange);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.brand-info{display:flex;flex-direction:column;min-width:0}
+.brand-mod{font-family:var(--font-d);font-size:12px;font-weight:800;color:#fff;white-space:nowrap}
+.brand-par{font-size:9px;color:var(--ow-orange);font-weight:700;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.hdr-ct{flex:1;display:flex;align-items:center;padding:0 24px;gap:10px}
+.hdr-back{display:flex;align-items:center;gap:6px;color:#555;font-size:12px;font-weight:600;text-decoration:none;padding:5px 9px;border-radius:6px;transition:.2s;border:1px solid transparent;flex-shrink:0}
+.hdr-back:hover{color:#fff;border-color:var(--sb-line)}
+.hdr-divider{width:1px;height:18px;background:var(--ct-border);flex-shrink:0}
+.hdr-fname{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--ct-text-1)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.m-sel{background:var(--ct-surface);border:1px solid var(--ct-border);color:var(--ct-text-1);font-family:var(--font-b);font-size:12px;font-weight:600;padding:7px 11px;border-radius:7px;cursor:pointer;outline:none;transition:border-color .2s}
+.m-sel:focus{border-color:var(--ow-orange)}
+.btn-up{display:flex;align-items:center;gap:7px;background:var(--ow-orange);color:#fff;border:none;padding:8px 14px;border-radius:7px;font-family:var(--font-b);font-size:12px;font-weight:700;cursor:pointer;transition:.2s}
+.btn-up:hover{background:var(--ow-orange-mid);box-shadow:0 4px 14px rgba(200,90,0,.3)}
+
+/* LAYOUT */
+.app-body{display:flex;flex:1;overflow:hidden;height:calc(100vh - var(--hh))}
+
+/* SIDEBAR */
+aside{width:var(--sw);background:var(--sb-bg);border-right:1px solid var(--sb-line);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-lbl{font-family:var(--font-m);font-size:9px;font-weight:500;letter-spacing:1.8px;text-transform:uppercase;color:#777;padding:16px 16px 6px}
+.fi{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:.15s;border-left:2px solid transparent}
+.fi:hover{background:var(--sb-bg-soft)}
+.fi.active{background:rgba(200,90,0,.15);border-left-color:var(--ow-orange)}
+.fi.active .fi-ic{color:var(--ow-orange)}.fi.active .fi-nm{color:var(--ow-orange)}.fi.active .fi-ct{background:var(--ow-orange);color:#fff}
+.fi-ic{font-size:15px;color:#888;flex-shrink:0;transition:color .15s}
+.fi-nm{font-size:11.5px;font-weight:600;color:var(--sb-text);flex:1;transition:color .15s;line-height:1.3}
+.fi-ct{font-family:var(--font-m);font-size:9px;background:#444;color:#888;padding:2px 7px;border-radius:10px;min-width:20px;text-align:center}
+.sb-div{height:1px;background:var(--sb-line);margin:4px 0}
+.sb-stor{padding:12px 16px;border-top:1px solid var(--sb-line)}
+.sb-stor-lbl{font-size:9px;color:#888;font-weight:600;display:flex;justify-content:space-between;margin-bottom:6px}
+.sb-bar{height:3px;background:#444;border-radius:2px;overflow:hidden}
+.sb-fill{height:100%;width:0;background:var(--ow-orange);border-radius:2px;transition:width .5s}
+
+/* MAIN (white) */
+main{flex:1;overflow-y:auto;background:var(--ct-bg);display:flex;flex-direction:column}
+.mi{padding:24px 28px 40px;flex:1}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.sc{background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:11px;animation:fu .4s ease both}
+.sc:nth-child(1){animation-delay:.04s}.sc:nth-child(2){animation-delay:.08s}.sc:nth-child(3){animation-delay:.12s}.sc:nth-child(4){animation-delay:.16s}
+@keyframes fu{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.si{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ic-or{background:var(--ow-orange-light);color:var(--ow-orange)}
+.ic-gr{background:var(--s-pago-bg);color:var(--s-pago)}
+.ic-or2{background:var(--s-programar-bg);color:var(--s-programar)}
+.ic-re{background:var(--s-vencido-bg);color:var(--s-vencido)}
+.ic-bl{background:var(--s-programado-bg);color:var(--s-programado)}
+.sv{font-family:var(--font-d);font-size:20px;font-weight:800;color:var(--ct-text-1);line-height:1}
+.sl{font-size:9px;color:var(--ct-text-3);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
+
+/* TOOLBAR */
+.tb{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.srch{display:flex;align-items:center;gap:7px;background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:7px;padding:7px 11px;transition:border-color .2s}
+.srch:focus-within{border-color:var(--ow-orange)}
+.srch i{color:var(--ct-text-3);font-size:14px}
+.srch input{background:none;border:none;outline:none;color:var(--ct-text-1);font-family:var(--font-b);font-size:13px;width:170px}
+.srch input::placeholder{color:var(--ct-text-3)}
+.fslt{background:var(--ct-surface);border:1px solid var(--ct-border);color:var(--ct-text-2);font-family:var(--font-b);font-size:12px;font-weight:600;padding:7px 11px;border-radius:7px;cursor:pointer;outline:none}
+.fslt:focus{border-color:var(--ow-orange)}
+.vt{display:flex;gap:3px;background:var(--ct-border);border-radius:7px;padding:3px;margin-left:auto}
+.vb{background:none;border:none;color:var(--ct-text-3);padding:5px 8px;border-radius:5px;cursor:pointer;font-size:13px;transition:.15s}
+.vb.active{background:var(--ct-surface);color:var(--ow-orange);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+
+/* EMPTY */
+.empty{display:none;flex-direction:column;align-items:center;justify-content:center;padding:80px 32px;text-align:center}
+.empty.vis{display:flex}
+.empty i{font-size:48px;color:var(--ct-border);margin-bottom:14px}
+.empty-t{font-family:var(--font-d);font-size:16px;color:var(--ct-text-2);margin-bottom:5px}
+.empty-s{font-size:13px;color:var(--ct-text-3);max-width:260px;line-height:1.5}
+
+/* DROP ZONE */
+.dz{border:2px dashed var(--ct-border);border-radius:9px;padding:16px 20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:18px;background:var(--ct-surface)}
+.dz:hover,.dz.drag{border-color:var(--ow-orange);background:var(--ow-orange-light)}
+.dz i{font-size:24px;color:var(--ct-text-3);margin-bottom:5px;display:block}
+.dz p{font-size:12px;color:var(--ct-text-3)}
+.dz strong{color:var(--ow-orange);cursor:pointer}
+
+/* DOCS GRID */
+.dg{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.dg.lv{grid-template-columns:1fr;gap:7px}
+
+/* DOC CARD */
+.dc{background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:10px;overflow:hidden;cursor:pointer;transition:.2s;animation:fu .3s ease both}
+.dc:hover{border-color:var(--ow-orange);box-shadow:0 4px 20px rgba(200,90,0,.10);transform:translateY(-2px)}
+.dc-top{padding:13px 14px 11px;display:flex;align-items:flex-start;gap:11px;border-bottom:1px solid var(--ct-bg)}
+.dc-ico{width:42px;height:42px;border-radius:8px;background:var(--ow-orange-light);color:var(--ow-orange);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.dc-ico.hc{background:var(--s-pago-bg);color:var(--s-pago)}
+.dc-info{flex:1;min-width:0}
+.dc-name{font-size:12.5px;font-weight:700;color:var(--ct-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+.dc-cat{font-size:10px;color:var(--ct-text-3);font-weight:500}
+.dc-meta{display:flex;gap:10px;margin-top:5px;flex-wrap:wrap}
+.dmi{display:flex;align-items:center;gap:3px;font-family:var(--font-m);font-size:9.5px;color:var(--ct-text-3)}
+.dmi i{font-size:10px}
+.dc-bot{padding:9px 14px;display:flex;align-items:center;justify-content:space-between;background:var(--ct-bg)}
+.stb{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
+.stb-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+.st-pa{background:var(--s-pago-bg);color:var(--s-pago)}
+.st-pr{background:var(--s-programar-bg);color:var(--s-programar)}
+.st-pd{background:var(--s-programado-bg);color:var(--s-programado)}
+.st-ve{background:var(--s-vencido-bg);color:var(--s-vencido)}
+.da{display:flex;gap:2px}
+.dab{background:none;border:none;color:var(--ct-text-3);font-size:14px;padding:4px 6px;border-radius:5px;cursor:pointer;transition:.15s}
+.dab:hover{background:var(--ow-orange-light);color:var(--ow-orange)}
+.dab.del:hover{background:var(--s-vencido-bg);color:var(--s-vencido)}
+
+/* LIST VIEW */
+.dg.lv .dc{display:flex;flex-direction:row;border-radius:8px}
+.dg.lv .dc-top{flex:1;border-bottom:none;border-right:1px solid var(--ct-bg)}
+.dg.lv .dc-bot{min-width:200px;justify-content:flex-end;gap:14px}
+
+/* OVERLAY */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:500;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .25s}
+.ov.open{opacity:1;pointer-events:all}
+
+/* MODAL UPLOAD */
+.modal{background:var(--ct-surface);border:1px solid var(--ct-border);border-radius:14px;width:100%;max-width:500px;padding:26px 30px;transform:translateY(16px);transition:transform .25s;box-shadow:0 20px 60px rgba(0,0,0,.18);max-height:90vh;overflow-y:auto}
+.ov.open .modal{transform:translateY(0)}
+.mhd{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.mt{font-family:var(--font-d);font-size:18px;font-weight:800;color:var(--ct-text-1)}
+.mc{background:none;border:1px solid var(--ct-border);color:var(--ct-text-3);font-size:17px;padding:4px 8px;border-radius:7px;cursor:pointer;transition:.15s}
+.mc:hover{border-color:var(--ow-orange);color:var(--ow-orange)}
+.mdp{border:2px dashed var(--ct-border);border-radius:9px;padding:28px 18px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:16px}
+.mdp:hover,.mdp.drag{border-color:var(--ow-orange);background:var(--ow-orange-light)}
+.mdp i{font-size:32px;color:var(--ow-orange);margin-bottom:8px}
+.mdp p{font-size:13px;color:var(--ct-text-2);line-height:1.5}
+.mdp strong{color:var(--ow-orange)}
+.fpi{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--ct-bg);border:1px solid var(--ct-border);border-radius:7px;margin-bottom:7px}
+.fpi i{color:var(--ow-orange);font-size:17px;flex-shrink:0}
+.fpi-n{flex:1;font-size:12px;font-weight:600;color:var(--ct-text-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fpi-s{font-family:var(--font-m);font-size:10px;color:var(--ct-text-3);flex-shrink:0}
+.fr{margin-bottom:12px}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+.fl{display:block;font-size:10px;font-weight:700;color:var(--ct-text-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.fi-in,.fi-sel{width:100%;background:var(--ct-bg);border:1px solid var(--ct-border);border-radius:7px;color:var(--ct-text-1);font-family:var(--font-b);font-size:13px;padding:9px 11px;outline:none;transition:border-color .2s;appearance:none}
+.fi-in:focus,.fi-sel:focus{border-color:var(--ow-orange);background:#fff}
+.bsv{width:100%;background:var(--ow-orange);color:#fff;border:none;border-radius:8px;padding:12px;font-family:var(--font-d);font-size:13px;font-weight:700;cursor:pointer;transition:.2s;margin-top:4px}
+.bsv:hover{background:var(--ow-orange-mid);box-shadow:0 5px 18px rgba(200,90,0,.25)}
+
+/* PANEL */
+.pov{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(2px);z-index:600;opacity:0;pointer-events:none;transition:opacity .25s}
+.pov.open{opacity:1;pointer-events:all}
+.dp{position:fixed;top:0;right:0;bottom:0;width:560px;max-width:95vw;background:var(--ct-surface);border-left:1px solid var(--ct-border);display:flex;flex-direction:column;z-index:700;transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);box-shadow:-6px 0 28px rgba(0,0,0,.10)}
+.pov.open .dp{transform:translateX(0)}
+.ph{padding:18px 22px;border-bottom:1px solid var(--ct-border);display:flex;align-items:center;gap:13px;flex-shrink:0}
+.ph-ico{width:46px;height:46px;border-radius:10px;background:var(--ow-orange-light);color:var(--ow-orange);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ph-ico.comp{background:var(--s-pago-bg);color:var(--s-pago)}
+.ph-inf{flex:1;min-width:0}
+.ph-nm{font-family:var(--font-d);font-size:15px;font-weight:800;color:var(--ct-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph-sb{font-size:11px;color:var(--ct-text-3);margin-top:2px}
+.pcl{background:none;border:1px solid var(--ct-border);color:var(--ct-text-3);font-size:17px;padding:5px 9px;border-radius:7px;cursor:pointer;transition:.15s}
+.pcl:hover{border-color:var(--ow-orange);color:var(--ow-orange)}
+.pb{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:18px}
+.pb::-webkit-scrollbar{width:4px}.pb::-webkit-scrollbar-thumb{background:var(--ct-border);border-radius:2px}
+.pmg{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pmi{background:var(--ct-bg);border-radius:8px;padding:11px 13px}
+.pml{font-size:9px;font-weight:700;color:var(--ct-text-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+.pmv{font-size:13px;font-weight:600;color:var(--ct-text-1)}
+.pst{font-size:10px;font-weight:700;color:var(--ct-text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:9px}
+.sas{display:flex;gap:7px;flex-wrap:wrap}
+.sab{display:flex;align-items:center;gap:5px;border:1px solid var(--ct-border);background:var(--ct-surface);color:var(--ct-text-2);font-family:var(--font-b);font-size:11px;font-weight:700;padding:7px 12px;border-radius:7px;cursor:pointer;transition:.18s}
+.sab:hover{border-color:var(--ow-orange);color:var(--ow-orange)}
+.sab.act-pa{background:var(--s-pago);border-color:var(--s-pago);color:#fff}
+.sab.act-pr{background:var(--s-programar);border-color:var(--s-programar);color:#fff}
+.sab.act-pd{background:var(--s-programado);border-color:var(--s-programado);color:#fff}
+.sab.act-ve{background:var(--s-vencido);border-color:var(--s-vencido);color:#fff}
+.att-box{border:1px solid var(--ct-border);border-radius:9px;overflow:hidden}
+.att-row{display:flex;align-items:center;gap:11px;padding:13px 15px;cursor:pointer;transition:background .15s}
+.att-row:hover{background:var(--ct-bg)}
+.att-ico{width:38px;height:38px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0}
+.att-ico.pdf{background:var(--ow-orange-light);color:var(--ow-orange)}
+.att-ico.comp{background:var(--s-pago-bg);color:var(--s-pago)}
+.att-ico.rep{background:#f0f0f0;color:#888;font-size:15px}
+.att-inf{flex:1;min-width:0}
+.att-n{font-size:12px;font-weight:600;color:var(--ct-text-1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.att-s{font-size:10px;color:var(--ct-text-3);margin-top:1px}
+.att-btn{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:5px 10px;border-radius:6px;border:1px solid var(--ow-orange-light);background:var(--ow-orange-light);color:var(--ow-orange);transition:.15s;white-space:nowrap}
+.att-btn:hover{background:var(--ow-orange);color:#fff}
+.att-btn.gr{border-color:var(--s-pago-bg);background:var(--s-pago-bg);color:var(--s-pago)}
+.att-btn.gr:hover{background:var(--s-pago);color:#fff}
+.att-sep{height:1px;background:var(--ct-border)}
+.cu{border:2px dashed var(--ct-border);border-radius:9px;padding:22px;text-align:center;cursor:pointer;transition:.2s}
+.cu:hover,.cu.drag{border-color:var(--s-pago);background:var(--s-pago-bg)}
+.cu i{font-size:26px;color:var(--s-pago);margin-bottom:7px;display:block}
+.cu p{font-size:12px;color:var(--ct-text-2)}
+.cu strong{color:var(--s-pago)}
+.pft{padding:14px 22px;border-top:1px solid var(--ct-border);display:flex;gap:9px;flex-shrink:0}
+.bps{flex:1;background:var(--ow-orange);color:#fff;border:none;border-radius:8px;padding:11px;font-family:var(--font-d);font-size:13px;font-weight:700;cursor:pointer;transition:.2s}
+.bps:hover{background:var(--ow-orange-mid)}
+.bpd{background:none;color:var(--s-vencido);border:1px solid var(--s-vencido-bg);border-radius:8px;padding:9px 13px;font-size:14px;cursor:pointer;transition:.15s}
+.bpd:hover{background:var(--s-vencido-bg)}
+
+/* TOAST */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--ct-surface);border:1px solid var(--ct-border);color:var(--ct-text-1);padding:11px 16px;border-radius:9px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:999;transform:translateX(130%);transition:transform .3s ease;box-shadow:0 6px 20px rgba(0,0,0,.10)}
+.toast.show{transform:translateX(0)}
+.toast i{font-size:16px}
+
+/* PDF VIEWER OVERLAY */
+.pdf-ov{position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:900;display:flex;flex-direction:column;opacity:0;pointer-events:none;transition:opacity .25s}
+.pdf-ov.open{opacity:1;pointer-events:all}
+.pdf-bar{height:52px;background:#1a1a1a;display:flex;align-items:center;padding:0 20px;gap:14px;flex-shrink:0;border-bottom:1px solid #333}
+.pdf-bar-title{font-family:var(--font-d);font-size:13px;font-weight:700;color:#fff;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pdf-bar-type{font-size:10px;font-weight:700;padding:3px 9px;border-radius:12px;flex-shrink:0}
+.pdf-bar-type.boleto{background:var(--ow-orange-light);color:var(--ow-orange)}
+.pdf-bar-type.comp{background:var(--s-pago-bg);color:var(--s-pago)}
+.pdf-close-btn{background:none;border:1px solid #444;color:#aaa;font-size:16px;padding:5px 10px;border-radius:7px;cursor:pointer;transition:.15s;flex-shrink:0}
+.pdf-close-btn:hover{border-color:var(--ow-orange);color:var(--ow-orange)}
+.pdf-frame{flex:1;border:none;width:100%;background:#2a2a2a}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-sb">
+    <div class="brand-logo"><i class="ph-fill ph-files"></i></div>
+    <div class="brand-info">
+      <span class="brand-mod">Guias & Pagamentos</span>
+      <span class="brand-par">ONE WAY · DP & Financeiro</span>
+    </div>
+  </div>
+  <div class="hdr-ct">
+    <a href="../" class="hdr-back"><i class="ph-bold ph-arrow-left"></i> HUB</a>
+    <div class="hdr-divider"></div>
+    <span class="hdr-fname" id="hFname">Todos os Arquivos</span>
+    <div class="hdr-right">
+      <select class="m-sel" id="monthFilter" onchange="renderDocs()">
+        <option value="">Todas as competências</option>
+        <option value="01">Janeiro 2025</option><option value="02">Fevereiro 2025</option>
+        <option value="03">Março 2025</option><option value="04">Abril 2025</option>
+        <option value="05" selected>Maio 2025</option><option value="06">Junho 2025</option>
+        <option value="07">Julho 2025</option><option value="08">Agosto 2025</option>
+        <option value="09">Setembro 2025</option><option value="10">Outubro 2025</option>
+        <option value="11">Novembro 2025</option><option value="12">Dezembro 2025</option>
+      </select>
+      <button class="btn-up" onclick="openUpModal()"><i class="ph-bold ph-upload-simple"></i> Enviar Arquivo</button>
+    </div>
+  </div>
+</header>
+
+<div class="app-body">
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sb-scroll">
+      <div class="sb-lbl">Visão Geral</div>
+      <div class="fi active" onclick="selFolder('all',this)"><i class="ph-fill ph-stack fi-ic"></i><span class="fi-nm">Todos os Arquivos</span><span class="fi-ct" id="cnt-all">0</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-lbl">Tributos & Obrigações</div>
+      <div class="fi" onclick="selFolder('das',this)"><i class="ph-fill ph-bank fi-ic"></i><span class="fi-nm">DAS — Simples Nacional</span><span class="fi-ct" id="cnt-das">0</span></div>
+      <div class="fi" onclick="selFolder('fgts',this)"><i class="ph-fill ph-buildings fi-ic"></i><span class="fi-nm">FGTS</span><span class="fi-ct" id="cnt-fgts">0</span></div>
+      <div class="fi" onclick="selFolder('darf',this)"><i class="ph-fill ph-receipt fi-ic"></i><span class="fi-nm">DARF / IRRF</span><span class="fi-ct" id="cnt-darf">0</span></div>
+      <div class="fi" onclick="selFolder('inss',this)"><i class="ph-fill ph-shield-check fi-ic"></i><span class="fi-nm">INSS / GPS</span><span class="fi-ct" id="cnt-inss">0</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-lbl">Folha & Rescisão</div>
+      <div class="fi" onclick="selFolder('folha',this)"><i class="ph-fill ph-money fi-ic"></i><span class="fi-nm">Folha de Pagamento</span><span class="fi-ct" id="cnt-folha">0</span></div>
+      <div class="fi" onclick="selFolder('adiantamento',this)"><i class="ph-fill ph-hand-coins fi-ic"></i><span class="fi-nm">Adiantamento</span><span class="fi-ct" id="cnt-adiantamento">0</span></div>
+      <div class="fi" onclick="selFolder('rescisao',this)"><i class="ph-fill ph-user-minus fi-ic"></i><span class="fi-nm">Rescisões</span><span class="fi-ct" id="cnt-rescisao">0</span></div>
+      <div class="fi" onclick="selFolder('ferias',this)"><i class="ph-fill ph-umbrella fi-ic"></i><span class="fi-nm">Férias</span><span class="fi-ct" id="cnt-ferias">0</span></div>
+      <div class="fi" onclick="selFolder('decimo',this)"><i class="ph-fill ph-gift fi-ic"></i><span class="fi-nm">13º Salário</span><span class="fi-ct" id="cnt-decimo">0</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-lbl">Benefícios</div>
+      <div class="fi" onclick="selFolder('vr',this)"><i class="ph-fill ph-fork-knife fi-ic"></i><span class="fi-nm">Vale Refeição / Alimentação</span><span class="fi-ct" id="cnt-vr">0</span></div>
+      <div class="fi" onclick="selFolder('vt',this)"><i class="ph-fill ph-bus fi-ic"></i><span class="fi-nm">Vale Transporte</span><span class="fi-ct" id="cnt-vt">0</span></div>
+      <div class="fi" onclick="selFolder('seguro',this)"><i class="ph-fill ph-heart fi-ic"></i><span class="fi-nm">Seguro de Vida</span><span class="fi-ct" id="cnt-seguro">0</span></div>
+      <div class="fi" onclick="selFolder('convenio',this)"><i class="ph-fill ph-first-aid-kit fi-ic"></i><span class="fi-nm">Convênios Médicos</span><span class="fi-ct" id="cnt-convenio">0</span></div>
+      <div class="fi" onclick="selFolder('gym',this)"><i class="ph-fill ph-barbell fi-ic"></i><span class="fi-nm">TotalPass / Gympass / Wellhub</span><span class="fi-ct" id="cnt-gym">0</span></div>
+      <div class="sb-div"></div>
+      <div class="sb-lbl">Outros</div>
+      <div class="fi" onclick="selFolder('odonto',this)"><i class="ph-fill ph-tooth fi-ic"></i><span class="fi-nm">Plano Odontológico</span><span class="fi-ct" id="cnt-odonto">0</span></div>
+      <div class="fi" onclick="selFolder('nf',this)"><i class="ph-fill ph-file-text fi-ic"></i><span class="fi-nm">Notas Fiscais</span><span class="fi-ct" id="cnt-nf">0</span></div>
+      <div class="fi" onclick="selFolder('outros',this)"><i class="ph-fill ph-folder-open fi-ic"></i><span class="fi-nm">Outros</span><span class="fi-ct" id="cnt-outros">0</span></div>
+    </div>
+    <div class="sb-stor">
+      <div class="sb-stor-lbl"><span id="stGb">0.0 GB / 10 GB</span><span id="stTxt">0%</span></div>
+      <div class="sb-bar"><div class="sb-fill" id="stFill"></div></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="mi">
+      <div class="stats">
+        <div class="sc"><div class="si ic-or"><i class="ph-fill ph-files"></i></div><div><div class="sv" id="st-tot">0</div><div class="sl">Total</div></div></div>
+        <div class="sc"><div class="si ic-or2"><i class="ph-fill ph-clock-countdown"></i></div><div><div class="sv" id="st-prg">0</div><div class="sl">A Programar</div></div></div>
+        <div class="sc"><div class="si ic-bl"><i class="ph-fill ph-calendar-check"></i></div><div><div class="sv" id="st-pd">0</div><div class="sl">Programados</div></div></div>
+        <div class="sc"><div class="si ic-re"><i class="ph-fill ph-warning-circle"></i></div><div><div class="sv" id="st-ve">0</div><div class="sl">Vencidos</div></div></div>
+      </div>
+      <div class="tb">
+        <div class="srch"><i class="ph-bold ph-magnifying-glass"></i><input type="text" id="srchIn" placeholder="Buscar arquivo..." oninput="renderDocs()"></div>
+        <select class="fslt" id="stFilter" onchange="renderDocs()">
+          <option value="">Todos os status</option>
+          <option value="programar">🟠 A Programar</option>
+          <option value="programado">🔵 Programados</option>
+          <option value="pago">🟢 Pagos</option>
+          <option value="vencido">🔴 Vencidos</option>
+        </select>
+        <div class="vt">
+          <button class="vb active" id="gbtn" onclick="setView('grid')" title="Grade"><i class="ph-bold ph-squares-four"></i></button>
+          <button class="vb" id="lbtn" onclick="setView('list')" title="Lista"><i class="ph-bold ph-list-bullets"></i></button>
+        </div>
+      </div>
+      <div class="dz" id="dropZone"><i class="ph-fill ph-cloud-arrow-up"></i><p>Arraste PDFs aqui ou <strong onclick="openUpModal()">clique para enviar</strong></p></div>
+      <div class="empty" id="emptyEl"><i class="ph-fill ph-folder-open"></i><div class="empty-t">Nenhum arquivo encontrado</div><div class="empty-s">Envie um PDF usando o botão "Enviar Arquivo".</div></div>
+      <div class="dg" id="docsGrid"></div>
+    </div>
+  </main>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="ov" id="upOv" onclick="handleUpOvClick(event)">
+  <div class="modal">
+    <div class="mhd"><span class="mt">Enviar Arquivo</span><button class="mc" onclick="closeUpModal()"><i class="ph-bold ph-x"></i></button></div>
+    <div class="mdp" id="mdp" onclick="document.getElementById('fileIn').click()">
+      <i class="ph-fill ph-file-pdf"></i>
+      <p><strong>Clique ou arraste</strong> o arquivo PDF aqui<br><small style="color:#bbb;font-size:11px">Suporta PDF · Máx 10 MB</small></p>
+    </div>
+    <input type="file" id="fileIn" accept=".pdf" multiple style="display:none" onchange="onFileSelect(event)">
+    <div id="fpArea"></div>
+    <div class="fr"><label class="fl">Categoria / Pasta</label>
+      <select class="fi-sel" id="mCat">
+        <option value="das">DAS — Simples Nacional</option><option value="fgts">FGTS</option>
+        <option value="darf">DARF / IRRF</option><option value="inss">INSS / GPS</option>
+        <option value="folha">Folha de Pagamento</option><option value="adiantamento">Adiantamento</option>
+        <option value="rescisao">Rescisões</option><option value="ferias">Férias</option>
+        <option value="decimo">13º Salário</option><option value="vr">Vale Refeição / Alimentação</option>
+        <option value="vt">Vale Transporte</option><option value="seguro">Seguro de Vida</option>
+        <option value="convenio">Convênios Médicos</option><option value="gym">TotalPass / Gympass / Wellhub</option>
+        <option value="odonto">Plano Odontológico</option><option value="nf">Notas Fiscais</option>
+        <option value="outros">Outros</option>
+      </select>
+    </div>
+    <div class="fr3">
+      <div><label class="fl">Competência</label>
+        <select class="fi-sel" id="mMon">
+          <option value="01">Jan/25</option><option value="02">Fev/25</option><option value="03">Mar/25</option>
+          <option value="04">Abr/25</option><option value="05" selected>Mai/25</option><option value="06">Jun/25</option>
+          <option value="07">Jul/25</option><option value="08">Ago/25</option><option value="09">Set/25</option>
+          <option value="10">Out/25</option><option value="11">Nov/25</option><option value="12">Dez/25</option>
+        </select>
+      </div>
+      <div><label class="fl">Vencimento</label><input type="date" class="fi-in" id="mDue"></div>
+      <div><label class="fl">Status Inicial</label>
+        <select class="fi-sel" id="mSt">
+          <option value="programar">🟠 Programar</option>
+          <option value="programado">🔵 Programado</option>
+          <option value="pago">🟢 Pago</option>
+        </select>
+      </div>
+    </div>
+    <button class="bsv" onclick="saveUpload()"><i class="ph-bold ph-upload-simple"></i> &nbsp;Salvar no Sistema</button>
+  </div>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="pov" id="pOv" onclick="handlePOvClick(event)">
+  <div class="dp" id="detPanel">
+    <div class="ph">
+      <div class="ph-ico" id="pIco"><i class="ph-fill ph-file-pdf"></i></div>
+      <div class="ph-inf"><div class="ph-nm" id="pNm">—</div><div class="ph-sb" id="pSb">—</div></div>
+      <button class="pcl" onclick="closePanel()"><i class="ph-bold ph-x"></i></button>
+    </div>
+    <div class="pb">
+      <div class="pmg" id="pMeta"></div>
+      <div>
+        <div class="pst">Alterar Status</div>
+        <div class="sas">
+          <button class="sab s-pr" onclick="setSt('programar')"><i class="ph-fill ph-clock-countdown"></i> 🟠 Programar</button>
+          <button class="sab s-pd" onclick="setSt('programado')"><i class="ph-fill ph-calendar-check"></i> 🔵 Programado</button>
+          <button class="sab s-pa" onclick="setSt('pago')"><i class="ph-fill ph-check-circle"></i> 🟢 Pago</button>
+          <button class="sab s-ve" onclick="setSt('vencido')"><i class="ph-fill ph-warning-circle"></i> 🔴 Vencido</button>
+        </div>
+      </div>
+      <div>
+        <div class="pst">Boleto / Guia Original</div>
+        <div class="att-box" id="boletoBox"></div>
+      </div>
+      <div>
+        <div class="pst">Comprovante de Pagamento</div>
+        <div id="compArea"></div>
+      </div>
+    </div>
+    <div class="pft">
+      <button class="bps" onclick="savePanel()"><i class="ph-bold ph-floppy-disk"></i> &nbsp;Salvar Alterações</button>
+      <button class="bpd" onclick="delFromPanel()" title="Excluir"><i class="ph-bold ph-trash"></i></button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="compIn" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="onCompSel(event)">
+<div class="toast" id="toast"><i id="tIco" class="ph-fill ph-check-circle"></i><span id="tMsg"></span></div>
+
+<!-- PDF VIEWER -->
+<div class="pdf-ov" id="pdfOv">
+  <div class="pdf-bar">
+    <span class="pdf-bar-type" id="pdfType">PDF</span>
+    <span class="pdf-bar-title" id="pdfTitle">Documento</span>
+    <button class="pdf-close-btn" onclick="closePdfViewer()"><i class="ph-bold ph-x"></i> Fechar</button>
+  </div>
+  <iframe class="pdf-frame" id="pdfFrame" src=""></iframe>
+</div>
+
+<script>
+const FL={
+  all:'Todos os Arquivos',das:'DAS — Simples Nacional',fgts:'FGTS',
+  darf:'DARF / IRRF',inss:'INSS / GPS',folha:'Folha de Pagamento',
+  adiantamento:'Adiantamento',rescisao:'Rescisões',ferias:'Férias',
+  decimo:'13º Salário',vr:'Vale Refeição / Alimentação',vt:'Vale Transporte',
+  seguro:'Seguro de Vida',convenio:'Convênios Médicos',
+  gym:'TotalPass / Gympass / Wellhub',odonto:'Plano Odontológico',
+  nf:'Notas Fiscais',outros:'Outros'
+};
+const CI={
+  das:'🏦',fgts:'🏢',darf:'🧾',inss:'🛡️',folha:'💰',adiantamento:'🤲',
+  rescisao:'📝',ferias:'☂️',decimo:'🎁',vr:'🍽️',vt:'🚌',
+  seguro:'❤️',convenio:'🩺',gym:'🏋️',odonto:'🦷',nf:'📃',outros:'📁'
+};
+const ML={'01':'Jan','02':'Fev','03':'Mar','04':'Abr','05':'Mai','06':'Jun',
+          '07':'Jul','08':'Ago','09':'Set','10':'Out','11':'Nov','12':'Dez'};
+
+let docs=JSON.parse(localStorage.getItem('ow_docs_v3')||'[]');
+let activeFolder='all',viewMode='grid',pendFiles=[],activeId=null,panelSt=null;
+
+function checkExpiry(){
+  const today=new Date();today.setHours(0,0,0,0);
+  let ch=false;
+  docs.forEach(d=>{
+    if(d.status==='pago')return;
+    if(!d.due)return;
+    const due=new Date(d.due+'T00:00:00');
+    if(due<today&&d.status!=='vencido'){d.status='vencido';ch=true;}
+  });
+  if(ch)saveDocs();
+}
+
+function getFiltered(){
+  const q=document.getElementById('srchIn').value.toLowerCase();
+  const mo=document.getElementById('monthFilter').value;
+  const st=document.getElementById('stFilter').value;
+  return docs.filter(d=>
+    (activeFolder==='all'||d.category===activeFolder)
+    &&(!q||d.name.toLowerCase().includes(q))
+    &&(!mo||d.month===mo)
+    &&(!st||d.status===st)
+  );
+}
+
+function stCls(s){return{pago:'st-pa',programar:'st-pr',programado:'st-pd',vencido:'st-ve'}[s]||'st-pr';}
+function stLbl(s){return{pago:'Pago',programar:'Programar',programado:'Programado',vencido:'Vencido'}[s]||s;}
+function fmtBR(iso){if(!iso)return'—';const[y,m,d]=iso.split('-');return`${d}/${m}/${y}`;}
+function fmtSz(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function saveDocs(){localStorage.setItem('ow_docs_v3',JSON.stringify(docs));}
+
+function renderDocs(){
+  const list=getFiltered();
+  const grid=document.getElementById('docsGrid');
+  const empty=document.getElementById('emptyEl');
+  document.getElementById('hFname').textContent=FL[activeFolder]||'Arquivos';
+  updStats();updCounts();
+  if(!list.length){grid.innerHTML='';empty.classList.add('vis');return;}
+  empty.classList.remove('vis');
+  grid.innerHTML=list.map((d,i)=>{
+    const hc=!!d.compData;
+    const due=d.due?fmtBR(d.due):'—';
+    const isOverdue=d.due&&new Date(d.due+'T00:00:00')<new Date()&&d.status!=='pago';
+    return`<div class="dc" style="animation-delay:${i*.04}s" onclick="openPanel('${d.id}')">
+      <div class="dc-top">
+        <div class="dc-ico${hc?' hc':''}">${CI[d.category]||'📄'}</div>
+        <div class="dc-info">
+          <div class="dc-name" title="${d.name}">${d.name}</div>
+          <div class="dc-cat">${FL[d.category]||d.category}</div>
+          <div class="dc-meta">
+            <span class="dmi"><i class="ph-bold ph-calendar"></i>${ML[d.month]||d.month}/25</span>
+            <span class="dmi" style="${isOverdue?'color:var(--s-vencido)':''}"><i class="ph-bold ph-alarm"></i>Venc: ${due}</span>
+            ${hc?'<span class="dmi" style="color:var(--s-pago)"><i class="ph-fill ph-seal-check"></i>Comprovante</span>':''}
+          </div>
+        </div>
+      </div>
+      <div class="dc-bot">
+        <span class="stb ${stCls(d.status)}"><span class="stb-dot"></span>${stLbl(d.status)}</span>
+        <div class="da">
+          <button class="dab" title="Abrir" onclick="event.stopPropagation();openPanel('${d.id}')"><i class="ph-bold ph-arrow-square-out"></i></button>
+          <button class="dab del" title="Excluir" onclick="event.stopPropagation();delDoc('${d.id}')"><i class="ph-bold ph-trash"></i></button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updStats(){
+  document.getElementById('st-tot').textContent=docs.length;
+  document.getElementById('st-prg').textContent=docs.filter(d=>d.status==='programar').length;
+  document.getElementById('st-pd').textContent=docs.filter(d=>d.status==='programado').length;
+  document.getElementById('st-ve').textContent=docs.filter(d=>d.status==='vencido').length;
+}
+function updCounts(){
+  const cats=['all','das','fgts','darf','inss','folha','adiantamento','rescisao',
+              'ferias','decimo','vr','vt','seguro','convenio','gym','odonto','nf','outros'];
+  cats.forEach(c=>{
+    const el=document.getElementById('cnt-'+c);
+    if(el)el.textContent=c==='all'?docs.length:docs.filter(d=>d.category===c).length;
+  });
+  // Storage: estimate size from base64 lengths
+  const MAX_GB=10;
+  let totalBytes=0;
+  docs.forEach(d=>{
+    if(d.fileData)totalBytes+=Math.round(d.fileData.length*0.75);
+    if(d.compData)totalBytes+=Math.round(d.compData.length*0.75);
+  });
+  const usedGB=totalBytes/1073741824;
+  const pct=Math.min(100,Math.round(usedGB/MAX_GB*100));
+  document.getElementById('stFill').style.width=pct+'%';
+  document.getElementById('stTxt').textContent=pct+'%';
+  document.getElementById('stGb').textContent=usedGB.toFixed(2)+' GB / '+MAX_GB+' GB';
+}
+
+function selFolder(f,el){
+  activeFolder=f;
+  document.querySelectorAll('.fi').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  if(f!=='all')document.getElementById('mCat').value=f;
+  renderDocs();
+}
+function setView(m){
+  viewMode=m;
+  document.getElementById('docsGrid').classList.toggle('lv',m==='list');
+  document.getElementById('gbtn').classList.toggle('active',m==='grid');
+  document.getElementById('lbtn').classList.toggle('active',m==='list');
+}
+
+/* UPLOAD MODAL */
+function openUpModal(){
+  pendFiles=[];
+  document.getElementById('fpArea').innerHTML='';
+  document.getElementById('fileIn').value='';
+  document.getElementById('mDue').value='';
+  document.getElementById('upOv').classList.add('open');
+}
+function closeUpModal(){document.getElementById('upOv').classList.remove('open');}
+function handleUpOvClick(e){if(e.target===document.getElementById('upOv'))closeUpModal();}
+
+function onFileSelect(e){pendFiles=Array.from(e.target.files);renderFP();}
+function renderFP(){
+  document.getElementById('fpArea').innerHTML=pendFiles.map(f=>`
+    <div class="fpi"><i class="ph-fill ph-file-pdf"></i><span class="fpi-n">${f.name}</span><span class="fpi-s">${fmtSz(f.size)}</span></div>`).join('');
+}
+
+function saveUpload(){
+  if(!pendFiles.length){showToast('Selecione ao menos um arquivo!','warn');return;}
+  const cat=document.getElementById('mCat').value;
+  const mon=document.getElementById('mMon').value;
+  const due=document.getElementById('mDue').value;
+  const st=document.getElementById('mSt').value;
+  let saved=0;
+  const next=idx=>{
+    if(idx>=pendFiles.length){saveDocs();closeUpModal();renderDocs();showToast(`${saved} arquivo(s) salvo(s)!`);return;}
+    const f=pendFiles[idx];
+    const r=new FileReader();
+    r.onload=ev=>{
+      docs.push({id:genId(),name:f.name,category:cat,month:mon,due,status:st,
+                 size:fmtSz(f.size),fileData:ev.target.result,compData:null,compName:null,
+                 uploadedAt:new Date().toISOString()});
+      saved++;next(idx+1);
+    };
+    r.readAsDataURL(f);
+  };
+  next(0);
+}
+
+/* PANEL */
+function openPanel(id){
+  const doc=docs.find(d=>d.id===id);if(!doc)return;
+  activeId=id;panelSt=doc.status;
+  document.getElementById('pNm').textContent=doc.name;
+  document.getElementById('pSb').textContent=`${FL[doc.category]||doc.category} · ${ML[doc.month]||doc.month}/25`;
+  const pi=document.getElementById('pIco');
+  pi.innerHTML=doc.compData?'<i class="ph-fill ph-seal-check"></i>':'<i class="ph-fill ph-file-pdf"></i>';
+  pi.className='ph-ico'+(doc.compData?' comp':'');
+  const isOv=doc.due&&new Date(doc.due+'T00:00:00')<new Date()&&doc.status!=='pago';
+  document.getElementById('pMeta').innerHTML=`
+    <div class="pmi"><div class="pml">Competência</div><div class="pmv">${ML[doc.month]||doc.month} / 2025</div></div>
+    <div class="pmi"><div class="pml">Vencimento</div><div class="pmv" style="${isOv?'color:var(--s-vencido)':''}">${doc.due?fmtBR(doc.due):'Não definido'}</div></div>
+    <div class="pmi"><div class="pml">Tamanho</div><div class="pmv">${doc.size||'—'}</div></div>
+    <div class="pmi"><div class="pml">Status</div><div class="pmv"><span class="stb ${stCls(doc.status)}">${stLbl(doc.status)}</span></div></div>`;
+  document.querySelectorAll('.sab').forEach(b=>b.classList.remove('act-pa','act-pr','act-pd','act-ve'));
+  const mp={programar:'act-pr',programado:'act-pd',pago:'act-pa',vencido:'act-ve'};
+  const ab=document.querySelector(`.sab.s-${doc.status==='programar'?'pr':doc.status==='programado'?'pd':doc.status==='pago'?'pa':'ve'}`);
+  if(ab)ab.classList.add(mp[doc.status]);
+  /* boleto */
+  const bb=document.getElementById('boletoBox');
+  bb.innerHTML=doc.fileData
+    ?`<div class="att-row" onclick="openFile('${id}','boleto')">
+        <div class="att-ico pdf"><i class="ph-fill ph-file-pdf"></i></div>
+        <div class="att-inf"><div class="att-n">${doc.name}</div><div class="att-s">${doc.size||'PDF'} · Boleto / Guia Original</div></div>
+        <span class="att-btn"><i class="ph-bold ph-eye"></i> Abrir</span></div>`
+    :`<div style="padding:14px;text-align:center;color:var(--ct-text-3);font-size:12px">Nenhum arquivo anexado</div>`;
+  renderCompArea(doc);
+  document.getElementById('pOv').classList.add('open');
+}
+
+function renderCompArea(doc){
+  const a=document.getElementById('compArea');
+  if(doc.compData){
+    a.innerHTML=`<div class="att-box">
+      <div class="att-row" onclick="openFile('${doc.id}','comp')">
+        <div class="att-ico comp"><i class="ph-fill ph-seal-check"></i></div>
+        <div class="att-inf"><div class="att-n">${doc.compName||'Comprovante'}</div><div class="att-s">Comprovante de Pagamento</div></div>
+        <span class="att-btn gr"><i class="ph-bold ph-eye"></i> Abrir</span>
+      </div>
+      <div class="att-sep"></div>
+      <div class="att-row" onclick="trigComp('${doc.id}')">
+        <div class="att-ico rep"><i class="ph-bold ph-arrow-clockwise"></i></div>
+        <div class="att-inf"><div class="att-n" style="color:var(--ct-text-3)">Substituir comprovante</div></div>
+      </div></div>`;
+  } else {
+    a.innerHTML=`<div class="cu" id="cuArea" onclick="trigComp('${doc.id}')">
+      <i class="ph-fill ph-upload-simple"></i>
+      <p><strong>Clique ou arraste</strong> o comprovante aqui<br><small style="color:#bbb;font-size:11px">PDF, PNG ou JPG</small></p></div>`;
+  }
+}
+
+function trigComp(id){
+  document.getElementById('compIn').dataset.docId=id;
+  document.getElementById('compIn').click();
+}
+
+function closePanel(){document.getElementById('pOv').classList.remove('open');activeId=null;}
+function handlePOvClick(e){if(e.target===document.getElementById('pOv'))closePanel();}
+
+function setSt(s){
+  panelSt=s;
+  document.querySelectorAll('.sab').forEach(b=>b.classList.remove('act-pa','act-pr','act-pd','act-ve'));
+  const mp={programar:'act-pr',programado:'act-pd',pago:'act-pa',vencido:'act-ve'};
+  const sel={programar:'s-pr',programado:'s-pd',pago:'s-pa',vencido:'s-ve'}[s];
+  const b=document.querySelector('.sab.'+sel);
+  if(b)b.classList.add(mp[s]);
+}
+
+function savePanel(){
+  const doc=docs.find(d=>d.id===activeId);if(!doc)return;
+  doc.status=panelSt;
+  saveDocs();renderDocs();openPanel(activeId);
+  showToast('Alterações salvas!');
+}
+
+function delFromPanel(){
+  if(!confirm('Excluir este arquivo?'))return;
+  docs=docs.filter(d=>d.id!==activeId);
+  saveDocs();closePanel();renderDocs();showToast('Arquivo excluído.');
+}
+
+function openFile(id,type){
+  const doc=docs.find(d=>d.id===id);if(!doc)return;
+  const data=type==='comp'?doc.compData:doc.fileData;
+  if(!data){showToast('Arquivo não encontrado.','warn');return;}
+  const isComp=type==='comp';
+  document.getElementById('pdfTitle').textContent=isComp?(doc.compName||'Comprovante'):doc.name;
+  const typeEl=document.getElementById('pdfType');
+  typeEl.textContent=isComp?'Comprovante':'Boleto / Guia';
+  typeEl.className='pdf-bar-type '+(isComp?'comp':'boleto');
+  document.getElementById('pdfFrame').src=data;
+  document.getElementById('pdfOv').classList.add('open');
+}
+function closePdfViewer(){
+  document.getElementById('pdfOv').classList.remove('open');
+  // Small delay before clearing src to avoid flash
+  setTimeout(()=>{document.getElementById('pdfFrame').src='';},300);
+}
+
+function delDoc(id){
+  if(!confirm('Excluir este arquivo?'))return;
+  docs=docs.filter(d=>d.id!==id);saveDocs();renderDocs();showToast('Arquivo excluído.');
+}
+
+/* COMPROVANTE */
+function onCompSel(e){
+  const f=e.target.files[0];if(!f)return;
+  const id=e.target.dataset.docId||activeId;
+  const doc=docs.find(d=>d.id===id);if(!doc)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    doc.compData=ev.target.result;doc.compName=f.name;
+    if(doc.status!=='pago'){doc.status='pago';panelSt='pago';}
+    saveDocs();renderDocs();
+    if(activeId===id)openPanel(id);
+    showToast('Comprovante anexado — status alterado para Pago!');
+    e.target.value='';
+  };
+  r.readAsDataURL(f);
+}
+
+/* DRAG & DROP */
+const mdpEl=document.getElementById('mdp');
+mdpEl.addEventListener('dragover',e=>{e.preventDefault();mdpEl.classList.add('drag');});
+mdpEl.addEventListener('dragleave',()=>mdpEl.classList.remove('drag'));
+mdpEl.addEventListener('drop',e=>{
+  e.preventDefault();mdpEl.classList.remove('drag');
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+  if(files.length){pendFiles=files;renderFP();}
+});
+
+document.getElementById('dropZone').addEventListener('dragover',e=>{e.preventDefault();document.getElementById('dropZone').classList.add('drag');});
+document.getElementById('dropZone').addEventListener('dragleave',()=>document.getElementById('dropZone').classList.remove('drag'));
+document.getElementById('dropZone').addEventListener('drop',e=>{
+  e.preventDefault();document.getElementById('dropZone').classList.remove('drag');
+  const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||f.name.toLowerCase().endsWith('.pdf'));
+  if(files.length){pendFiles=files;openUpModal();renderFP();}
+  else showToast('Apenas PDFs são aceitos na central.','warn');
+});
+
+/* TOAST */
+let tTimer;
+function showToast(msg,type='ok'){
+  const t=document.getElementById('toast');
+  const cfg={ok:{cls:'ph-fill ph-check-circle',c:'var(--s-pago)',b:'#bbf7d0'},
+              warn:{cls:'ph-fill ph-warning-circle',c:'var(--s-avencer)',b:'#fde68a'},
+              err:{cls:'ph-fill ph-x-circle',c:'var(--s-vencido)',b:'#fecaca'}}[type];
+  document.getElementById('tIco').className=cfg.cls;
+  document.getElementById('tIco').style.color=cfg.c;
+  document.getElementById('tMsg').textContent=msg;
+  document.getElementById('toast').style.borderColor=cfg.b;
+  t.classList.add('show');clearTimeout(tTimer);tTimer=setTimeout(()=>t.classList.remove('show'),3400);
+}
+
+checkExpiry();
+renderDocs();
+setInterval(checkExpiry,3600000);
+</script>
+</body>
+</html>
