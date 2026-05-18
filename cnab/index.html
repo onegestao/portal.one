@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OneWay - Pagamentos Diversos (VR / VT / Reembolso)</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  body { font-family: 'Inter', sans-serif; background:#f8fafc; }
+  .nav-item.active { background:#FFF7ED; color:#EA580C; border-right:3px solid #EA580C; }
+  .glass-panel { background:#fff; border:1px solid #e2e8f0; box-shadow:0 4px 6px -1px rgba(0,0,0,.05); }
+  .cnab-input { background:#fffbeb; border-color:#fcd34d; }
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
+  .badge-vr   { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
+  .badge-vt   { background:#dbeafe; color:#1e40af; border:1px solid #bfdbfe; }
+  .badge-rmb  { background:#fef3c7; color:#92400e; border:1px solid #fde68a; }
+  .badge-out  { background:#f3e8ff; color:#6b21a8; border:1px solid #e9d5ff; }
+  .row-warn   { background:#fff1f2; }
+  textarea.paste-area { font-family:'JetBrains Mono','Menlo',monospace; font-size:12px; }
+</style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-white border-r border-gray-200 flex flex-col z-20 shadow-sm">
+  <div class="h-16 flex items-center px-6 border-b border-gray-100">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center">
+        <i class="fas fa-coins text-sm"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold text-gray-800 tracking-tight leading-none">OneWay</h1>
+        <span class="text-[10px] text-gray-400 uppercase tracking-wider">Pagamentos</span>
+      </div>
+    </div>
+  </div>
+
+  <nav class="flex-1 py-6 px-3 space-y-1">
+    <button onclick="switchView('input')"   id="nav-input"   class="nav-item active w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition">
+      <i class="fas fa-paste w-5 text-center"></i> Colar Lançamentos
+    </button>
+    <button onclick="switchView('preview')" id="nav-preview" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition">
+      <i class="fas fa-list-check w-5 text-center"></i> Preview & Edição
+    </button>
+    <button onclick="switchView('cnab')"    id="nav-cnab"    class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition">
+      <i class="fas fa-file-invoice-dollar w-5 text-center"></i> Gerar CNAB
+    </button>
+  </nav>
+
+  <div class="p-4 border-t border-gray-100 space-y-2">
+    <button onclick="saveProject()" class="w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-800 transition shadow">
+      <i class="fas fa-save"></i> Salvar Backup
+    </button>
+    <button onclick="document.getElementById('projectUpload').click()" class="w-full text-xs text-gray-500 hover:text-orange-600 underline text-center">
+      Carregar Backup
+    </button>
+    <input type="file" id="projectUpload" accept=".json" class="hidden" onchange="loadProjectFromFile(this)">
+    <button onclick="clearAll()" class="w-full text-xs text-red-500 hover:underline text-center">Limpar tudo</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="flex-1 flex flex-col h-screen overflow-hidden bg-gray-50">
+
+  <header class="h-16 bg-white border-b border-gray-200 flex justify-between items-center px-8 shadow-sm z-10">
+    <div>
+      <h2 id="pageTitle" class="text-xl font-bold text-gray-800">Colar Lançamentos</h2>
+      <p id="pageSubtitle" class="text-xs text-gray-500">Cole a relação de contas a pagar copiada da planilha</p>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="flex flex-col items-end">
+        <span class="text-sm font-semibold text-gray-700"><span id="lancCountTop">0</span> lançamentos</span>
+        <span class="text-xs text-gray-400"><span id="totalTop">R$ 0,00</span></span>
+      </div>
+      <div id="notification" class="bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full transition hidden"></div>
+    </div>
+  </header>
+
+  <main class="flex-1 overflow-auto p-8">
+
+    <!-- VIEW INPUT -->
+    <div id="view-input" class="view-section space-y-6">
+
+      <div class="glass-panel rounded-xl p-6">
+        <h3 class="text-lg font-bold text-gray-800 mb-1">Cole os dados</h3>
+        <p class="text-sm text-gray-500 mb-4">
+          Cole direto da planilha (Excel, Google Sheets). Formato esperado, separado por TAB:<br>
+          <span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">Data Lançamento &nbsp;⇥&nbsp; Nome &nbsp;⇥&nbsp; Motivo &nbsp;⇥&nbsp; Valor &nbsp;⇥&nbsp; Vencimento &nbsp;⇥&nbsp; CPF ou CNPJ</span>
+        </p>
+
+        <textarea id="pasteInput" rows="14" placeholder="18/05/2026	Cintia de Lourdes Gomes	REEMBOLSO CHIP 	 25,38 	18/05/2026	448.369.778-19
+18/05/2026	BEATRIZ DE OLIVEIRA SANTOS 	VR SEMANAL 	 61,00 	18/05/2026	425.776.368-51
+..."
+          class="paste-area w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"></textarea>
+
+        <div class="flex flex-wrap items-center justify-between mt-4 gap-3">
+          <div class="text-xs text-gray-500">
+            <i class="fas fa-circle-info text-orange-500 mr-1"></i>
+            Categorização automática: <strong>VR</strong>, <strong>VT</strong>, <strong>Reembolso</strong>, <strong>Outros</strong> (baseado no Motivo)
+          </div>
+          <div class="flex gap-2">
+            <button onclick="document.getElementById('pasteInput').value=''" class="text-xs text-gray-500 hover:text-gray-700 px-3 py-2 border border-gray-200 rounded-lg">Limpar</button>
+            <button onclick="processPaste()" class="bg-orange-600 text-white font-bold px-5 py-2 rounded-lg hover:bg-orange-700 transition shadow text-sm">
+              <i class="fas fa-bolt mr-1"></i> Processar lançamentos
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-panel rounded-xl p-6">
+        <h3 class="text-sm font-bold text-gray-700 mb-3 uppercase">Dicas para colar</h3>
+        <ul class="text-sm text-gray-600 space-y-2 list-disc pl-5">
+          <li>Não inclua a linha de cabeçalho — apenas os dados.</li>
+          <li>Valores podem ter espaços e vírgula decimal: <span class="font-mono bg-gray-100 px-1">25,38</span>, <span class="font-mono bg-gray-100 px-1">1.250,00</span> ou <span class="font-mono bg-gray-100 px-1">"R$ 61,00"</span>.</li>
+          <li>Documentos serão validados como CPF (11 dígitos) ou CNPJ (14 dígitos). Linhas com documento inválido aparecem destacadas em vermelho.</li>
+          <li>Você pode colar várias vezes — novos lançamentos são acrescentados aos já importados.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- VIEW PREVIEW -->
+    <div id="view-preview" class="view-section space-y-6 hidden">
+
+      <!-- Resumo cards -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="glass-panel p-4 rounded-xl border-l-4 border-green-600">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Vale-Refeição</p>
+          <h3 class="text-lg font-bold text-gray-800 mt-1" id="sumVR">R$ 0,00</h3>
+          <span class="text-xs text-gray-400" id="cntVR">0 itens</span>
+        </div>
+        <div class="glass-panel p-4 rounded-xl border-l-4 border-blue-600">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Vale-Transporte</p>
+          <h3 class="text-lg font-bold text-gray-800 mt-1" id="sumVT">R$ 0,00</h3>
+          <span class="text-xs text-gray-400" id="cntVT">0 itens</span>
+        </div>
+        <div class="glass-panel p-4 rounded-xl border-l-4 border-yellow-500">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Reembolsos</p>
+          <h3 class="text-lg font-bold text-gray-800 mt-1" id="sumRMB">R$ 0,00</h3>
+          <span class="text-xs text-gray-400" id="cntRMB">0 itens</span>
+        </div>
+        <div class="glass-panel p-4 rounded-xl border-l-4 border-purple-600">
+          <p class="text-xs font-semibold text-gray-500 uppercase">Outros</p>
+          <h3 class="text-lg font-bold text-gray-800 mt-1" id="sumOUT">R$ 0,00</h3>
+          <span class="text-xs text-gray-400" id="cntOUT">0 itens</span>
+        </div>
+        <div class="glass-panel p-4 rounded-xl border-l-4 border-gray-900 bg-gray-900 text-white">
+          <p class="text-xs font-semibold text-gray-300 uppercase">TOTAL</p>
+          <h3 class="text-lg font-bold mt-1" id="sumALL">R$ 0,00</h3>
+          <span class="text-xs text-gray-400" id="cntALL">0 itens</span>
+        </div>
+      </div>
+
+      <!-- Tabela -->
+      <div class="glass-panel rounded-xl overflow-hidden">
+        <div class="p-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex gap-2 items-center flex-wrap">
+            <button onclick="setFilter('ALL')" id="flt-ALL" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-900 text-white">Todos</button>
+            <button onclick="setFilter('VR')"  id="flt-VR"  class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">VR</button>
+            <button onclick="setFilter('VT')"  id="flt-VT"  class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">VT</button>
+            <button onclick="setFilter('RMB')" id="flt-RMB" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">Reembolso</button>
+            <button onclick="setFilter('OUT')" id="flt-OUT" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">Outros</button>
+            <button onclick="setFilter('WARN')" id="flt-WARN" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700">⚠ Com erro</button>
+            <input id="searchInput" oninput="renderPreview()" placeholder="Buscar nome ou CPF..." class="ml-3 border border-gray-300 rounded-lg px-3 py-1.5 text-xs">
+          </div>
+          <div class="flex gap-2">
+            <button onclick="exportReportXLSX()" class="text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded hover:bg-blue-100 transition">
+              <i class="fas fa-file-excel mr-1"></i> Relatório XLSX
+            </button>
+            <button onclick="exportConcilCSV()" class="text-xs font-medium text-green-700 bg-green-50 border border-green-200 px-3 py-1.5 rounded hover:bg-green-100 transition">
+              <i class="fas fa-file-csv mr-1"></i> Conciliação CSV
+            </button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left">
+            <thead class="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+              <tr>
+                <th class="p-3 w-10"></th>
+                <th class="p-3">Categoria</th>
+                <th class="p-3">Favorecido</th>
+                <th class="p-3">CPF / CNPJ</th>
+                <th class="p-3">Motivo</th>
+                <th class="p-3 text-center">Data Lanç.</th>
+                <th class="p-3 text-center">Vencimento</th>
+                <th class="p-3 text-right">Valor (R$)</th>
+                <th class="p-3 text-center w-16">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="previewBody" class="text-sm text-gray-700 divide-y divide-gray-100"></tbody>
+            <tfoot id="previewFoot" class="bg-gray-50 text-gray-800 font-bold text-sm"></tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW CNAB -->
+    <div id="view-cnab" class="view-section space-y-6 hidden">
+      <div class="flex flex-col lg:flex-row gap-6">
+
+        <!-- Painel Config -->
+        <div class="w-full lg:w-1/3 space-y-6">
+          <div class="glass-panel p-6 rounded-xl border-t-4 border-orange-500">
+            <h3 class="font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <i class="fas fa-cog text-orange-500"></i> Dados do Pagamento
+            </h3>
+
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Data do Pagamento</label>
+                <input type="date" id="cnabDate" class="w-full border border-gray-300 rounded-lg p-2 text-sm">
+              </div>
+
+              <div class="pt-4 border-t border-gray-100">
+                <h4 class="text-sm font-bold text-gray-700 mb-3">Pagador (Sua Empresa)</h4>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="col-span-2">
+                    <label class="text-xs text-gray-400">CNPJ</label>
+                    <input type="text" id="compCnpj" value="63.004.633/0001-98" class="w-full border rounded p-2 text-sm">
+                  </div>
+                  <div class="col-span-2">
+                    <label class="text-xs text-gray-400">Razão Social</label>
+                    <input type="text" id="compName" value="" placeholder="Nome da empresa pagadora" class="w-full border rounded p-2 text-sm">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">Agência <span class="text-orange-600">(fixa pelo Inter)</span></label>
+                    <input type="text" id="compAg" value="00001-9" readonly class="w-full border rounded p-2 text-sm bg-gray-100 text-gray-600 cursor-not-allowed">
+                  </div>
+                  <div>
+                    <label class="text-xs text-gray-400">Conta c/ DV</label>
+                    <input type="text" id="compCc" value="49659022-7" class="w-full border rounded p-2 text-sm">
+                  </div>
+                </div>
+                <p class="text-xs text-gray-400 mt-2">Conforme Manual CNAB 240 Inter v1.21, a agência é fixa "00001" com DV "9" para todas as contas Inter Empresas.</p>
+              </div>
+
+              <div class="pt-4 border-t border-gray-100">
+                <h4 class="text-sm font-bold text-gray-700 mb-3">Identificação para Conciliação</h4>
+                <p class="text-xs text-gray-500 mb-2">
+                  Prefixo gravado em cada lançamento (campo "Nº Documento") para facilitar conciliação no extrato.
+                </p>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                  <div><label class="text-gray-400">VR</label><input type="text" id="prefVR" value="VR" maxlength="6" class="w-full border rounded p-1.5"></div>
+                  <div><label class="text-gray-400">VT</label><input type="text" id="prefVT" value="VT" maxlength="6" class="w-full border rounded p-1.5"></div>
+                  <div><label class="text-gray-400">Reembolso</label><input type="text" id="prefRMB" value="REEMB" maxlength="6" class="w-full border rounded p-1.5"></div>
+                  <div><label class="text-gray-400">Outros</label><input type="text" id="prefOUT" value="DIV" maxlength="6" class="w-full border rounded p-1.5"></div>
+                </div>
+              </div>
+            </div>
+
+            <button onclick="generateCNAB()" class="w-full mt-6 bg-orange-600 text-white font-bold py-3 rounded-lg hover:bg-orange-700 transition shadow flex items-center justify-center gap-2">
+              <i class="fas fa-download"></i> Gerar CNAB .REM
+            </button>
+            <div id="cnabFeedback" class="mt-3 text-xs text-center"></div>
+          </div>
+
+          <div class="glass-panel p-5 rounded-xl border border-yellow-200 bg-yellow-50">
+            <h4 class="text-sm font-bold text-yellow-900 mb-2"><i class="fas fa-triangle-exclamation mr-1"></i> Antes do primeiro envio</h4>
+            <p class="text-xs text-yellow-800 leading-relaxed">
+              Arquivo gerado conforme <strong>Manual CNAB 240 Pagamentos Inter v1.21</strong> (10/02/2026), modalidade <strong>Pix por chave CPF/CNPJ</strong> — forma de iniciação "03", tipo de serviço "98" (Diversos), forma de lançamento "45" (Pix). O tipo de documento (1=CPF, 2=CNPJ) é detectado automaticamente pelo tamanho.
+              Cada favorecido precisa ter o CPF/CNPJ cadastrado como chave Pix no banco dele.
+              <br><br>
+              Recomendo importar em <strong>homologação Inter</strong> uma vez para confirmar antes do primeiro envio em produção.
+            </p>
+          </div>
+        </div>
+
+        <!-- Preview Lote -->
+        <div class="w-full lg:w-2/3">
+          <div class="glass-panel p-6 rounded-xl h-full flex flex-col">
+            <div class="flex justify-between items-start mb-4">
+              <div>
+                <h3 class="font-bold text-gray-800">Lote a Pagar</h3>
+                <p class="text-xs text-gray-500">Lançamentos consolidados por favorecido + categoria</p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-gray-400 uppercase">Total</p>
+                <span id="cnabTotal" class="text-xl font-bold text-green-600">R$ 0,00</span>
+              </div>
+            </div>
+
+            <div class="flex-1 overflow-auto bg-gray-50 rounded-lg border border-gray-200">
+              <table class="w-full text-left">
+                <thead class="text-xs text-gray-500 uppercase bg-gray-100 border-b border-gray-200 sticky top-0">
+                  <tr>
+                    <th class="p-3 w-20">Categoria</th>
+                    <th class="p-3">Favorecido</th>
+                    <th class="p-3">CPF / CNPJ</th>
+                    <th class="p-3 w-32">Nº Documento</th>
+                    <th class="p-3 text-right w-32">Valor</th>
+                  </tr>
+                </thead>
+                <tbody id="cnabBody" class="text-sm text-gray-600 divide-y divide-gray-200"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* ============================================================
+   STATE
+============================================================ */
+const State = {
+  lancamentos: [],  // { id, dataLanc, nome, motivo, valor, vencimento, cpf, categoria, valid, warn }
+  filter: 'ALL',
+  company: { cnpj:'63.004.633/0001-98', name:'', ag:'0001', cc:'49659022-7' },
+  prefixes: { VR:'VR', VT:'VT', RMB:'REEMB', OUT:'DIV' },
+  cnabSeq: 1
+};
+
+const STORAGE_KEY = 'oneway_pagamentos_v1';
+
+window.addEventListener('load', () => {
+  loadFromStorage();
+  document.getElementById('cnabDate').valueAsDate = new Date();
+  bindInputs();
+  renderAll();
+});
+
+function bindInputs() {
+  ['compCnpj','compName','compAg','compCc'].forEach(id => {
+    document.getElementById(id).addEventListener('change', e => {
+      const k = id.replace('comp','').toLowerCase();
+      State.company[k === 'cnpj' ? 'cnpj' : k === 'name' ? 'name' : k] = e.target.value;
+      saveToStorage();
+    });
+  });
+  ['prefVR','prefVT','prefRMB','prefOUT'].forEach(id => {
+    document.getElementById(id).addEventListener('change', e => {
+      State.prefixes[id.replace('pref','')] = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'');
+      saveToStorage();
+    });
+  });
+}
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    Object.assign(State, data);
+    document.getElementById('compCnpj').value = State.company.cnpj || '';
+    document.getElementById('compName').value = State.company.name || '';
+    document.getElementById('compAg').value   = State.company.ag   || '';
+    document.getElementById('compCc').value   = State.company.cc   || '';
+    document.getElementById('prefVR').value   = State.prefixes.VR  || 'VR';
+    document.getElementById('prefVT').value   = State.prefixes.VT  || 'VT';
+    document.getElementById('prefRMB').value  = State.prefixes.RMB || 'REEMB';
+    document.getElementById('prefOUT').value  = State.prefixes.OUT || 'DIV';
+  } catch(e) { console.warn('Falha ao carregar storage', e); }
+}
+function saveToStorage() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(State));
+}
+
+/* ============================================================
+   NAVIGATION
+============================================================ */
+function switchView(id) {
+  document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+  document.getElementById('nav-'+id).classList.add('active');
+  document.querySelectorAll('.view-section').forEach(e => e.classList.add('hidden'));
+  document.getElementById('view-'+id).classList.remove('hidden');
+
+  const titles = {
+    input:   ['Colar Lançamentos', 'Cole a relação de contas a pagar copiada da planilha'],
+    preview: ['Preview & Edição',   'Confira, edite e categorize antes de gerar o CNAB'],
+    cnab:    ['Gerar CNAB Inter',   'Pix por chave CPF, categorizado para conciliação']
+  };
+  document.getElementById('pageTitle').innerText = titles[id][0];
+  document.getElementById('pageSubtitle').innerText = titles[id][1];
+
+  if (id === 'cnab') renderCnabPreview();
+}
+
+/* ============================================================
+   PARSER
+============================================================ */
+function processPaste() {
+  const raw = document.getElementById('pasteInput').value;
+  if (!raw.trim()) { notify('Cole algum conteúdo antes.', 'red'); return; }
+
+  const rows = parseTabular(raw);
+  if (!rows.length) { notify('Não foi possível detectar linhas válidas.', 'red'); return; }
+
+  let added = 0, errs = 0;
+  rows.forEach(r => {
+    if (r.length < 6) { errs++; return; }
+    const [dataLanc, nome, motivo, valorStr, vencimento, cpfStr] = r.map(s => s.trim());
+    const valor = parseValor(valorStr);
+    const cpf = (cpfStr || '').replace(/\D/g,'');
+    const valid = (cpf.length === 11 || cpf.length === 14) && valor > 0;
+    const warn  = !valid;
+    const categoria = classify(motivo);
+
+    State.lancamentos.push({
+      id: crypto.randomUUID ? crypto.randomUUID() : (Date.now()+'-'+Math.random()),
+      dataLanc, nome: nome.replace(/\s+/g,' ').trim(),
+      motivo: motivo.replace(/\s+/g,' ').trim(),
+      valor, vencimento, cpf, categoria, valid, warn
+    });
+    added++;
+  });
+
+  document.getElementById('pasteInput').value = '';
+  saveToStorage();
+  notify(`${added} lançamento(s) importado(s)${errs ? `, ${errs} ignorado(s)` : ''}.`, 'green');
+  switchView('preview');
+  renderAll();
+}
+
+/* Parser TSV simples — respeita aspas para campos com quebra de linha */
+function parseTabular(text) {
+  const rows = [];
+  let cur = [], field = '', inQuotes = false;
+  text = text.replace(/\r\n/g, '\n');
+  for (let i=0; i<text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+      else if (c === '"') { inQuotes = false; }
+      else field += c;
+    } else {
+      if (c === '"') inQuotes = true;
+      else if (c === '\t') { cur.push(field); field=''; }
+      else if (c === '\n') {
+        cur.push(field); field='';
+        if (cur.some(x => x.trim())) rows.push(cur);
+        cur = [];
+      } else field += c;
+    }
+  }
+  if (field || cur.length) { cur.push(field); if (cur.some(x => x.trim())) rows.push(cur); }
+
+  // Fallback: se a primeira linha tem só 1 coluna, talvez não seja TSV. Tenta com 2+ espaços.
+  if (rows.length && rows.every(r => r.length < 6)) {
+    const alt = text.split('\n').filter(l => l.trim()).map(l => l.split(/ {2,}|\t+/).map(s => s.trim()).filter(Boolean));
+    if (alt.some(r => r.length >= 6)) return alt;
+  }
+  return rows;
+}
+
+function parseValor(s) {
+  if (!s) return 0;
+  let v = String(s).trim().replace(/^R\$\s*/i,'').replace(/\s/g,'');
+  // Se tem vírgula como decimal, troca por ponto e remove milhares
+  if (v.includes(',')) v = v.replace(/\./g,'').replace(',','.');
+  const n = parseFloat(v);
+  return isNaN(n) ? 0 : n;
+}
+
+function classify(motivo) {
+  const m = (motivo || '').toUpperCase();
+  if (/\bVR\b|REFEI[ÇC]/.test(m)) return 'VR';
+  if (/\bVT\b|TRANSPORTE/.test(m)) return 'VT';
+  if (/REEMB|RESSARC/.test(m)) return 'RMB';
+  return 'OUT';
+}
+
+/* ============================================================
+   RENDER
+============================================================ */
+function renderAll() {
+  renderPreview();
+  renderSummary();
+  renderCnabPreview();
+  document.getElementById('lancCountTop').innerText = State.lancamentos.length;
+  document.getElementById('totalTop').innerText = money(State.lancamentos.reduce((a,b)=>a+b.valor,0));
+}
+
+function setFilter(f) {
+  State.filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.remove('bg-gray-900','text-white');
+    b.classList.add('bg-gray-100','text-gray-700');
+  });
+  const btn = document.getElementById('flt-'+f);
+  if (btn) { btn.classList.remove('bg-gray-100','text-gray-700'); btn.classList.add('bg-gray-900','text-white'); }
+  renderPreview();
+}
+
+function renderPreview() {
+  const tbody = document.getElementById('previewBody');
+  const tfoot = document.getElementById('previewFoot');
+  tbody.innerHTML = '';
+  const q = (document.getElementById('searchInput')?.value || '').toLowerCase();
+
+  let list = State.lancamentos.slice();
+  if (State.filter === 'WARN') list = list.filter(l => l.warn);
+  else if (State.filter !== 'ALL') list = list.filter(l => l.categoria === State.filter);
+  if (q) list = list.filter(l => l.nome.toLowerCase().includes(q) || l.cpf.includes(q.replace(/\D/g,'')));
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-gray-400">Nenhum lançamento. Vá em "Colar Lançamentos" para importar.</td></tr>';
+    tfoot.innerHTML = '';
+    return;
+  }
+
+  let total = 0;
+  list.forEach((l, idx) => {
+    total += l.valor;
+    const tr = document.createElement('tr');
+    tr.className = `hover:bg-gray-50 ${l.warn ? 'row-warn' : ''}`;
+    tr.innerHTML = `
+      <td class="p-3 text-center text-xs text-gray-400">${idx+1}</td>
+      <td class="p-3">
+        <select onchange="updateField('${l.id}','categoria',this.value)" class="text-xs px-2 py-1 rounded ${badgeClass(l.categoria)}">
+          <option value="VR"  ${l.categoria==='VR' ?'selected':''}>VR</option>
+          <option value="VT"  ${l.categoria==='VT' ?'selected':''}>VT</option>
+          <option value="RMB" ${l.categoria==='RMB'?'selected':''}>Reembolso</option>
+          <option value="OUT" ${l.categoria==='OUT'?'selected':''}>Outros</option>
+        </select>
+      </td>
+      <td class="p-3"><input class="w-full text-sm" value="${escapeHtml(l.nome)}"   onchange="updateField('${l.id}','nome',this.value)"></td>
+      <td class="p-3">
+        <div class="flex items-center gap-1">
+          <input class="flex-1 text-xs font-mono ${isValidDoc(l.cpf)?'':'text-red-600 font-bold'}" value="${formatCpf(l.cpf)}" onchange="updateField('${l.id}','cpf',this.value)">
+          ${isValidDoc(l.cpf) ? `<span class="text-[10px] px-1 rounded ${l.cpf.length===14?'bg-purple-100 text-purple-700':'bg-gray-100 text-gray-600'}">${docType(l.cpf)}</span>` : ''}
+        </div>
+      </td>
+      <td class="p-3"><input class="w-full text-xs text-gray-500" value="${escapeHtml(l.motivo)}" onchange="updateField('${l.id}','motivo',this.value)"></td>
+      <td class="p-3 text-center text-xs">${escapeHtml(l.dataLanc)}</td>
+      <td class="p-3 text-center text-xs">${escapeHtml(l.vencimento)}</td>
+      <td class="p-3 text-right"><input type="number" step="0.01" class="text-right w-24 text-sm" value="${l.valor.toFixed(2)}" onchange="updateField('${l.id}','valor',this.value)"></td>
+      <td class="p-3 text-center"><button onclick="removeLanc('${l.id}')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash text-xs"></i></button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tfoot.innerHTML = `<tr>
+    <td colspan="7" class="p-3 text-right uppercase text-xs text-gray-500">Total filtrado (${list.length} itens)</td>
+    <td class="p-3 text-right text-green-700">${money(total)}</td>
+    <td></td></tr>`;
+}
+
+function renderSummary() {
+  const cats = { VR:0, VT:0, RMB:0, OUT:0 };
+  const cnt  = { VR:0, VT:0, RMB:0, OUT:0 };
+  State.lancamentos.forEach(l => { cats[l.categoria] += l.valor; cnt[l.categoria]++; });
+  const total = State.lancamentos.reduce((a,b)=>a+b.valor,0);
+  document.getElementById('sumVR').innerText  = money(cats.VR);
+  document.getElementById('sumVT').innerText  = money(cats.VT);
+  document.getElementById('sumRMB').innerText = money(cats.RMB);
+  document.getElementById('sumOUT').innerText = money(cats.OUT);
+  document.getElementById('sumALL').innerText = money(total);
+  document.getElementById('cntVR').innerText  = cnt.VR  + ' itens';
+  document.getElementById('cntVT').innerText  = cnt.VT  + ' itens';
+  document.getElementById('cntRMB').innerText = cnt.RMB + ' itens';
+  document.getElementById('cntOUT').innerText = cnt.OUT + ' itens';
+  document.getElementById('cntALL').innerText = State.lancamentos.length + ' itens';
+}
+
+function renderCnabPreview() {
+  const body = document.getElementById('cnabBody');
+  body.innerHTML = '';
+  let total = 0;
+  const validos = State.lancamentos.filter(l => l.valid);
+  const counters = { VR:0, VT:0, RMB:0, OUT:0 };
+
+  validos.forEach(l => {
+    counters[l.categoria]++;
+    const docNum = buildDocNumber(l, counters[l.categoria]);
+    total += l.valor;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td class="p-3"><span class="text-xs px-2 py-0.5 rounded ${badgeClass(l.categoria)}">${labelCat(l.categoria)}</span></td>
+      <td class="p-3 text-sm">${escapeHtml(l.nome)}</td>
+      <td class="p-3 text-xs font-mono">${formatCpf(l.cpf)} <span class="text-[10px] px-1 rounded ml-1 ${l.cpf.length===14?'bg-purple-100 text-purple-700':'bg-gray-100 text-gray-600'}">${docType(l.cpf)}</span></td>
+      <td class="p-3 text-xs font-mono text-gray-500">${docNum}</td>
+      <td class="p-3 text-right text-sm font-semibold text-green-700">${money(l.valor)}</td>
+    `;
+    body.appendChild(tr);
+  });
+
+  if (!validos.length) {
+    body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-gray-400">Nenhum lançamento válido para gerar CNAB.</td></tr>';
+  }
+  document.getElementById('cnabTotal').innerText = money(total);
+}
+
+function updateField(id, field, val) {
+  const l = State.lancamentos.find(x => x.id === id);
+  if (!l) return;
+  if (field === 'valor') l.valor = parseValor(val);
+  else if (field === 'cpf') { l.cpf = val.replace(/\D/g,''); }
+  else l[field] = val;
+  l.valid = (l.cpf.length === 11 || l.cpf.length === 14) && l.valor > 0;
+  l.warn = !l.valid;
+  saveToStorage();
+  renderAll();
+}
+
+function removeLanc(id) {
+  State.lancamentos = State.lancamentos.filter(x => x.id !== id);
+  saveToStorage();
+  renderAll();
+}
+
+/* ============================================================
+   UTILS DE FORMATAÇÃO
+============================================================ */
+function money(v)       { return (v || 0).toLocaleString('pt-BR', {style:'currency', currency:'BRL'}); }
+function formatCpf(c)   {
+  if (!c) return '';
+  c = c.replace(/\D/g,'');
+  if (c.length === 11) return c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
+  if (c.length === 14) return c.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5');
+  return c;
+}
+function docType(c)     { c = (c||'').replace(/\D/g,''); return c.length === 14 ? 'CNPJ' : (c.length === 11 ? 'CPF' : '?'); }
+function isValidDoc(c)  { c = (c||'').replace(/\D/g,''); return c.length === 11 || c.length === 14; }
+function escapeHtml(s)  { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function badgeClass(c)  { return { VR:'badge-vr', VT:'badge-vt', RMB:'badge-rmb', OUT:'badge-out' }[c] || 'badge-out'; }
+function labelCat(c)    { return { VR:'VR', VT:'VT', RMB:'Reembolso', OUT:'Outros' }[c] || c; }
+
+function buildDocNumber(l, seq) {
+  const prefMap = { VR: State.prefixes.VR, VT: State.prefixes.VT, RMB: State.prefixes.RMB, OUT: State.prefixes.OUT };
+  const pref = (prefMap[l.categoria] || 'DIV').replace(/[^A-Z0-9]/g,'').substring(0,6);
+  const seqStr = seq.toString().padStart(20 - pref.length, '0');
+  return (pref + seqStr).substring(0,20);
+}
+
+function notify(msg, color='green') {
+  const el = document.getElementById('notification');
+  el.innerText = msg;
+  el.className = `text-xs px-3 py-1 rounded-full ${color==='red'?'bg-red-100 text-red-800':'bg-green-100 text-green-800'}`;
+  el.classList.remove('hidden');
+  setTimeout(() => el.classList.add('hidden'), 4000);
+}
+
+/* ============================================================
+   CNAB 240 - BANCO INTER - PIX POR CHAVE CPF
+============================================================ */
+function generateCNAB() {
+  const fb = document.getElementById('cnabFeedback');
+  fb.innerHTML = '';
+
+  const validos = State.lancamentos.filter(l => l.valid);
+  if (!validos.length) { fb.innerHTML = '<span class="text-red-600">Nenhum lançamento válido.</span>'; return; }
+
+  // Dados do pagador. Manual Inter v1.21: agência da empresa é FIXA "00001" com DV "9".
+  const cnpj = (document.getElementById('compCnpj').value || '').replace(/\D/g,'').padStart(14,'0');
+  const name = (document.getElementById('compName').value || 'EMPRESA').toUpperCase().padEnd(30,' ').substring(0,30);
+  const ccRaw = document.getElementById('compCc').value.replace(/[^0-9]/g,'');
+  const compAg   = '00001';   // FIXO conforme Manual CNAB 240 Inter (pos 53-57)
+  const compAgDv = '9';       // FIXO conforme Manual CNAB 240 Inter (pos 58)
+  const compCc = ccRaw.slice(0,-1).padStart(12,'0');
+  const compCcDv = ccRaw.slice(-1) || '0';
+
+  if (cnpj.replace(/0/g,'').length === 0) { fb.innerHTML = '<span class="text-red-600">Preencha o CNPJ.</span>'; return; }
+  if (!ccRaw || ccRaw.length < 2)          { fb.innerHTML = '<span class="text-red-600">Preencha a conta com dígito.</span>'; return; }
+
+  const now = new Date();
+  const dataGer = ddmmaaaa(now);
+  const horaGer = hhmmss(now);
+  const payDate = document.getElementById('cnabDate').value
+    ? document.getElementById('cnabDate').value.split('-').reverse().join('')
+    : dataGer;
+
+  const nsa = (State.cnabSeq || 1);
+  const nsaStr = nsa.toString().padStart(6,'0');  // 6 dígitos para o header
+  const nsaFile = nsa.toString().padStart(7,'0'); // 7 dígitos para o nome do arquivo
+
+  // === HEADER ARQUIVO (240) ===
+  let header = '';
+  header += '077';                              // 1-3   código do banco
+  header += '0000';                             // 4-7   lote
+  header += '0';                                // 8     tipo registro
+  header += ' '.repeat(9);                      // 9-17  CNAB FEBRABAN
+  header += '2';                                // 18    tipo inscrição (CNPJ)
+  header += cnpj;                               // 19-32 CNPJ
+  header += ' '.repeat(20);                     // 33-52 convênio
+  header += compAg;                             // 53-57 agência
+  header += compAgDv;                           // 58    DV agência
+  header += compCc;                             // 59-70 conta
+  header += compCcDv;                           // 71    DV conta
+  header += ' ';                                // 72    DV ag/conta
+  header += name;                               // 73-102 nome empresa
+  header += 'BANCO INTER'.padEnd(30,' ');       // 103-132 nome banco
+  header += ' '.repeat(10);                     // 133-142 CNAB
+  header += '1';                                // 143    código remessa
+  header += dataGer + horaGer + nsaStr;         // 144-163 (8+6+6)
+  header += '107';                              // 164-166 versão layout
+  header += '01600';                            // 167-171 densidade
+  header += ' '.repeat(20);                     // 172-191 reservado banco
+  header += ' '.repeat(20);                     // 192-211 reservado empresa
+  header += ' '.repeat(29);                     // 212-240 CNAB
+
+  // === HEADER LOTE (240) ===
+  let lotHeader = '';
+  lotHeader += '077';                           // 1-3
+  lotHeader += '0001';                          // 4-7 número do lote
+  lotHeader += '1';                             // 8 tipo registro
+  lotHeader += 'C';                             // 9 operação (crédito)
+  lotHeader += '98';                            // 10-11 tipo serviço (98 = Diversos)
+  lotHeader += '45';                            // 12-13 forma lançamento (45 = Pix)
+  lotHeader += '046';                           // 14-16 versão layout lote
+  lotHeader += ' ';                             // 17
+  lotHeader += '2';                             // 18 tipo inscrição empresa (CNPJ)
+  lotHeader += cnpj;                            // 19-32
+  lotHeader += ' '.repeat(20);                  // 33-52 convênio
+  lotHeader += compAg;                          // 53-57
+  lotHeader += compAgDv;                        // 58
+  lotHeader += compCc;                          // 59-70
+  lotHeader += compCcDv;                        // 71
+  lotHeader += ' ';                             // 72
+  lotHeader += name;                            // 73-102
+  lotHeader += 'PAGTOS DIVERSOS - PIX'.padEnd(40,' ').substring(0,40); // 103-142 mensagem
+  lotHeader += ' '.repeat(30);                  // 143-172 rua
+  lotHeader += '00000';                         // 173-177 número
+  lotHeader += ' '.repeat(15);                  // 178-192 complemento
+  lotHeader += ' '.repeat(20);                  // 193-212 cidade
+  lotHeader += '00000000';                      // 213-220 CEP
+  lotHeader += 'SP';                            // 221-222 UF
+  lotHeader += ' '.repeat(8);                   // 223-230 uso FEBRABAN
+  lotHeader += ' '.repeat(10);                  // 231-240 códigos ocorrências
+
+  // === SEGMENTOS A + B (240 cada) ===
+  const segments = [];
+  const counters = { VR:0, VT:0, RMB:0, OUT:0 };
+  let seq = 0;
+  let totalCents = 0;
+
+  validos.forEach(l => {
+    counters[l.categoria]++;
+    const docNum = buildDocNumber(l, counters[l.categoria]).padEnd(20,' ').substring(0,20);
+
+    const amountCents = Math.round(l.valor * 100);
+    totalCents += amountCents;
+    const amountStr = amountCents.toString().padStart(15,'0');
+
+    const favName = (l.nome || '').toUpperCase().padEnd(30,' ').substring(0,30);
+    const favCpf  = l.cpf.padStart(14,'0');  // pos 14 = 11 com zeros à esquerda (formato CNPJ-compat)
+
+    // === SEGMENTO A Pix === (Manual Inter v1.21 seção 6.2)
+    seq++;
+    let segA = '';
+    segA += '077';                              // 1-3
+    segA += '0001';                             // 4-7 lote
+    segA += '3';                                // 8 tipo registro
+    segA += seq.toString().padStart(5,'0');     // 9-13 sequencial
+    segA += 'A';                                // 14 segmento
+    segA += '0';                                // 15 tipo movimento (inclusão)
+    segA += '00';                               // 16-17 cód instrução
+    segA += '000';                              // 18-20 câmara
+    // Pos 21-42: Para Pix por chave (forma iniciação ≠ 05), TODOS estes campos vão zerados
+    segA += '000';                              // 21-23 banco favorecido — zeros
+    segA += '00000';                            // 24-28 agência favorecido — zeros
+    segA += '0';                                // 29 DV agência — zero
+    segA += '000000000000';                     // 30-41 conta favorecido — zeros
+    segA += '0';                                // 42 DV conta — zero
+    segA += ' ';                                // 43 branco
+    // Pos 44-73: Nome do favorecido.
+    // ATENÇÃO: O Manual Inter v1.21 (item 15 seção 6.2) diz "preencher com zeros" quando
+    // a forma de iniciação != 05. Porém, na prática o portal Inter LÊ este campo como
+    // o "Beneficiário final" exibido na importação. Preencher com zeros faz aparecer
+    // "00000...000" no portal. Preenchemos com o nome real para a exibição funcionar.
+    segA += favName;                            // 44-73 nome favorecido (30 chars)
+    segA += docNum;                             // 74-93 Nº DOCUMENTO empresa — CONCILIAÇÃO
+    segA += payDate;                            // 94-101 data pagamento DDMMAAAA
+    segA += 'BRL';                              // 102-104 moeda
+    segA += '0'.repeat(15);                     // 105-119 quantidade moeda
+    segA += amountStr;                          // 120-134 valor pagamento (com 2 casas decimais)
+    segA += ' '.repeat(20);                     // 135-154 nº doc atribuído pelo banco (vem no retorno)
+    segA += '0'.repeat(8);                      // 155-162 data efetivação (vem no retorno)
+    segA += '0'.repeat(15);                     // 163-177 valor efetivação (vem no retorno)
+    // Pos 178-201: Identificação do Pagamento Pix (manual seção 6.2 itens 24-26)
+    segA += favCpf;                             // 178-191 CPF/CNPJ favorecido (14, zeros à esquerda)
+    segA += '0'.repeat(8);                      // 192-199 ISPB — zeros para Pix por chave
+    segA += '00';                               // 200-201 Tipo conta — zeros para Pix por chave
+    segA += ' '.repeat(29);                     // 202-230 branco
+    segA += ' '.repeat(10);                     // 231-240 ocorrências (vem no retorno)
+    segments.push(padOrCut(segA, 240));
+
+    // === SEGMENTO B Pix === (Manual Inter v1.21 seção 6.3)
+    // Para Pix por chave CPF/CNPJ: forma iniciação "03 ", documento no campo dedicado, chave Pix branca
+    const isCnpj = l.cpf.length === 14;
+    const docTypeCode = isCnpj ? '2' : '1';   // Manual: "1"=CPF, "2"=CNPJ
+    seq++;
+    let segB = '';
+    segB += '077';                              // 1-3
+    segB += '0001';                             // 4-7
+    segB += '3';                                // 8
+    segB += seq.toString().padStart(5,'0');     // 9-13
+    segB += 'B';                                // 14
+    segB += '03 ';                              // 15-17 forma iniciação "03" + 1 branco = 3 chars Alfa
+    segB += docTypeCode;                        // 18 tipo doc favorecido (1=CPF, 2=CNPJ)
+    segB += favCpf;                             // 19-32 CPF/CNPJ favorecido (14, zeros à esquerda se CPF)
+    // Pos 33-67: TX ID Pix (opcional, 35 chars Alfa) — reforça conciliação no extrato
+    segB += docNum.padEnd(35,' ').substring(0,35); // 33-67 TX ID = mesmo nº documento do Seg A
+    segB += ' '.repeat(60);                     // 68-127 branco
+    segB += ' '.repeat(99);                     // 128-226 chave Pix — branco (CPF já está na pos 19-32)
+    segB += ' '.repeat(6);                      // 227-232 branco
+    segB += '0'.repeat(8);                      // 233-240 ISPB favorecido — zeros para Pix por chave
+    segments.push(padOrCut(segB, 240));
+  });
+
+  // === TRAILER LOTE ===
+  const totalAmountStr = totalCents.toString().padStart(18,'0');
+  const qtyRegLote = (segments.length + 2).toString().padStart(6,'0'); // header lote + segmentos + trailer
+  let trailerLote = '';
+  trailerLote += '077';                         // 1-3
+  trailerLote += '0001';                        // 4-7
+  trailerLote += '5';                           // 8
+  trailerLote += ' '.repeat(9);                 // 9-17
+  trailerLote += qtyRegLote;                    // 18-23 qtd registros do lote
+  trailerLote += totalAmountStr;                // 24-41 valor total
+  trailerLote += '0'.repeat(18);                // 42-59 qtd moedas
+  trailerLote += '0'.repeat(6);                 // 60-65 nº aviso débito
+  trailerLote += ' '.repeat(165);               // 66-230 CNAB
+  trailerLote += ' '.repeat(10);                // 231-240 ocorrências
+
+  // === TRAILER ARQUIVO === (Manual Inter v1.21 seção 4.3)
+  const totalLinhas = 2 + segments.length + 2; // header arq + header lote + segs + trailer lote + trailer arq
+  let trailerArq = '';
+  trailerArq += '077';                          // 1-3
+  trailerArq += '9999';                         // 4-7
+  trailerArq += '9';                            // 8
+  trailerArq += ' '.repeat(9);                  // 9-17 branco
+  trailerArq += '000001';                       // 18-23 qtd lotes do arquivo
+  trailerArq += totalLinhas.toString().padStart(6,'0'); // 24-29 qtd registros do arquivo
+  trailerArq += ' '.repeat(211);                // 30-240 branco
+
+  // === MONTA ===
+  const lines = [
+    padOrCut(header, 240),
+    padOrCut(lotHeader, 240),
+    ...segments,
+    padOrCut(trailerLote, 240),
+    padOrCut(trailerArq, 240)
+  ];
+  const content = lines.join('\r\n');
+
+  // Incrementa NSA
+  State.cnabSeq = nsa + 1;
+  saveToStorage();
+
+  const fileName = `CI240_001_${nsaFile}.REM`;
+  downloadFile(content, fileName, 'text/plain');
+
+  fb.innerHTML = `<span class="text-green-700"><i class="fas fa-check-circle"></i> Arquivo <strong>${fileName}</strong> gerado com ${validos.length} lançamento(s) • Total ${money(totalCents/100)}</span>`;
+}
+
+function padOrCut(s, n) {
+  if (s.length === n) return s;
+  if (s.length > n)   return s.substring(0,n);
+  return s + ' '.repeat(n - s.length);
+}
+function ddmmaaaa(d) { return [d.getDate(), d.getMonth()+1, d.getFullYear()].map((v,i)=>String(v).padStart(i===2?4:2,'0')).join(''); }
+function hhmmss(d)   { return [d.getHours(), d.getMinutes(), d.getSeconds()].map(v=>String(v).padStart(2,'0')).join(''); }
+
+function downloadFile(content, fileName, mime) {
+  const blob = new Blob([content], {type: mime});
+  if (typeof saveAs === 'function') saveAs(blob, fileName);
+  else {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fileName;
+    a.click();
+  }
+}
+
+/* ============================================================
+   EXPORTS PARA CONCILIAÇÃO
+============================================================ */
+function exportReportXLSX() {
+  if (!State.lancamentos.length) { notify('Nada para exportar.', 'red'); return; }
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Lançamentos detalhados
+  const counters = { VR:0, VT:0, RMB:0, OUT:0 };
+  const rows = [['Categoria','Nº Documento','Data Lanç.','Vencimento','Favorecido','CPF/CNPJ','Tipo','Motivo','Valor','Status']];
+  State.lancamentos.forEach(l => {
+    if (l.valid) counters[l.categoria]++;
+    const doc = l.valid ? buildDocNumber(l, counters[l.categoria]) : '';
+    rows.push([labelCat(l.categoria), doc, l.dataLanc, l.vencimento, l.nome, formatCpf(l.cpf), docType(l.cpf), l.motivo, l.valor, l.valid?'OK':'ERRO']);
+  });
+  const ws1 = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Lançamentos');
+
+  // Sheet 2: Resumo por categoria
+  const cats = { VR:0, VT:0, RMB:0, OUT:0 };
+  State.lancamentos.forEach(l => { if (l.valid) cats[l.categoria] += l.valor; });
+  const r2 = [['Categoria','Quantidade','Valor Total']];
+  Object.keys(cats).forEach(k => r2.push([labelCat(k), State.lancamentos.filter(l=>l.categoria===k&&l.valid).length, cats[k]]));
+  r2.push(['TOTAL', State.lancamentos.filter(l=>l.valid).length, Object.values(cats).reduce((a,b)=>a+b,0)]);
+  const ws2 = XLSX.utils.aoa_to_sheet(r2);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumo');
+
+  // Sheet 3: Resumo por favorecido
+  const byFav = {};
+  State.lancamentos.filter(l=>l.valid).forEach(l => {
+    const k = l.cpf;
+    if (!byFav[k]) byFav[k] = { nome:l.nome, cpf:l.cpf, VR:0, VT:0, RMB:0, OUT:0, total:0 };
+    byFav[k][l.categoria] += l.valor;
+    byFav[k].total += l.valor;
+  });
+  const r3 = [['Favorecido','CPF/CNPJ','Tipo','VR','VT','Reembolso','Outros','Total']];
+  Object.values(byFav).sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(f =>
+    r3.push([f.nome, formatCpf(f.cpf), docType(f.cpf), f.VR, f.VT, f.RMB, f.OUT, f.total]));
+  const ws3 = XLSX.utils.aoa_to_sheet(r3);
+  XLSX.utils.book_append_sheet(wb, ws3, 'Por Favorecido');
+
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  saveAs(new Blob([wbout], {type:'application/octet-stream'}), 'Relatorio_Pagamentos.xlsx');
+}
+
+function exportConcilCSV() {
+  if (!State.lancamentos.length) { notify('Nada para exportar.', 'red'); return; }
+  const counters = { VR:0, VT:0, RMB:0, OUT:0 };
+  const rows = [['NumDocumento','Categoria','CPF/CNPJ','Tipo','Favorecido','Motivo','Valor','DataPagto']];
+  const payDate = document.getElementById('cnabDate').value || '';
+  State.lancamentos.filter(l=>l.valid).forEach(l => {
+    counters[l.categoria]++;
+    rows.push([buildDocNumber(l,counters[l.categoria]), labelCat(l.categoria), formatCpf(l.cpf), docType(l.cpf), l.nome, l.motivo, l.valor.toFixed(2).replace('.',','), payDate]);
+  });
+  const csv = rows.map(r => r.map(c => /[",;\n]/.test(String(c)) ? `"${String(c).replace(/"/g,'""')}"` : c).join(';')).join('\n');
+  saveAs(new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8'}), 'Conciliacao_Pagamentos.csv');
+}
+
+/* ============================================================
+   BACKUP / CLEAR
+============================================================ */
+function saveProject() {
+  saveAs(new Blob([JSON.stringify(State, null, 2)], {type:'application/json'}), 'OneWay_Pagamentos_Backup.json');
+}
+function loadProjectFromFile(input) {
+  if (!input.files[0]) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      Object.assign(State, data);
+      saveToStorage();
+      loadFromStorage();
+      renderAll();
+      notify('Backup carregado.', 'green');
+    } catch(err) { notify('Arquivo inválido.', 'red'); }
+  };
+  r.readAsText(input.files[0]);
+}
+function clearAll() {
+  if (!confirm('Apagar TODOS os lançamentos? Esta ação não pode ser desfeita.')) return;
+  State.lancamentos = [];
+  saveToStorage();
+  renderAll();
+  notify('Lançamentos limpos.', 'green');
+}
+</script>
+
+</body>
+</html>
